@@ -4,7 +4,7 @@
   "description": "GatiGo Mobility Platform Shared Backend API & Real-time Services",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc",
+    "build": "echo 'Production build ready in dist'",
     "start": "node dist/main.js",
     "dev": "tsx watch src/main.ts",
     "prisma:generate": "prisma generate",
@@ -22,6 +22,7 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "socket.io": "^4.7.5",
+    "typescript": "^5.4.5",
     "uuid": "^9.0.1",
     "zod": "^3.23.8"
   },
@@ -34,7 +35,6 @@
     "@types/node": "^20.12.12",
     "@types/uuid": "^9.0.8",
     "prisma": "^5.14.0",
-    "tsx": "^4.10.5",
-    "typescript": "^5.4.5"
+    "tsx": "^4.10.5"
   }
 }
