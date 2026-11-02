@@ -23,18 +23,36 @@ const ride_sharing_routes_js_1 = __importDefault(require("./modules/ride-sharing
 const finance_routes_js_1 = __importDefault(require("./modules/finance/finance.routes.js"));
 const delivery_routes_js_1 = __importDefault(require("./modules/deliveries/delivery.routes.js"));
 const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 function createApp() {
     const app = (0, express_1.default)();
     // Static files for direct mobile APK downloads with proper Android MIME type
     app.get('/downloads/:filename', (req, res) => {
         const filename = req.params.filename;
-        const filePath = path_1.default.resolve(__dirname, '../../admin-dashboard/public/downloads', filename);
-        res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.sendFile(filePath);
+        const candidates = [
+            path_1.default.resolve(process.cwd(), 'public/downloads', filename),
+            path_1.default.resolve(__dirname, '../public/downloads', filename),
+            path_1.default.resolve(__dirname, '../../public/downloads', filename),
+            path_1.default.resolve(__dirname, '../../admin-dashboard/public/downloads', filename),
+            path_1.default.resolve(__dirname, '../../../admin-dashboard/public/downloads', filename)
+        ];
+        const foundPath = candidates.find(p => fs_1.default.existsSync(p));
+        if (foundPath) {
+            res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            return res.sendFile(foundPath);
+        }
+        return res.status(404).json({ success: false, message: `APK file ${filename} not found on server.` });
     });
-    const downloadsDir = path_1.default.resolve(__dirname, '../../admin-dashboard/public/downloads');
-    app.use('/downloads', express_1.default.static(downloadsDir));
+    const candidatesDir = [
+        path_1.default.resolve(process.cwd(), 'public/downloads'),
+        path_1.default.resolve(__dirname, '../public/downloads'),
+        path_1.default.resolve(__dirname, '../../admin-dashboard/public/downloads')
+    ];
+    const activeDir = candidatesDir.find(d => fs_1.default.existsSync(d));
+    if (activeDir) {
+        app.use('/downloads', express_1.default.static(activeDir));
+    }
     // Global middlewares
     app.use((0, helmet_1.default)({
         contentSecurityPolicy: false // Allow modern frontend dev tools

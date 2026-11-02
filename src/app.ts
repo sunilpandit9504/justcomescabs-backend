@@ -20,6 +20,7 @@ import financeRoutes from './modules/finance/finance.routes.js';
 import deliveryRoutes from './modules/deliveries/delivery.routes.js';
 
 import path from 'path';
+import fs from 'fs';
 
 export function createApp(): Express {
   const app = express();
@@ -27,13 +28,32 @@ export function createApp(): Express {
   // Static files for direct mobile APK downloads with proper Android MIME type
   app.get('/downloads/:filename', (req, res) => {
     const filename = req.params.filename;
-    const filePath = path.resolve(__dirname, '../../admin-dashboard/public/downloads', filename);
-    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.sendFile(filePath);
+    const candidates = [
+      path.resolve(process.cwd(), 'public/downloads', filename),
+      path.resolve(__dirname, '../public/downloads', filename),
+      path.resolve(__dirname, '../../public/downloads', filename),
+      path.resolve(__dirname, '../../admin-dashboard/public/downloads', filename),
+      path.resolve(__dirname, '../../../admin-dashboard/public/downloads', filename)
+    ];
+
+    const foundPath = candidates.find(p => fs.existsSync(p));
+    if (foundPath) {
+      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.sendFile(foundPath);
+    }
+    return res.status(404).json({ success: false, message: `APK file ${filename} not found on server.` });
   });
-  const downloadsDir = path.resolve(__dirname, '../../admin-dashboard/public/downloads');
-  app.use('/downloads', express.static(downloadsDir));
+
+  const candidatesDir = [
+    path.resolve(process.cwd(), 'public/downloads'),
+    path.resolve(__dirname, '../public/downloads'),
+    path.resolve(__dirname, '../../admin-dashboard/public/downloads')
+  ];
+  const activeDir = candidatesDir.find(d => fs.existsSync(d));
+  if (activeDir) {
+    app.use('/downloads', express.static(activeDir));
+  }
 
   // Global middlewares
   app.use(helmet({
