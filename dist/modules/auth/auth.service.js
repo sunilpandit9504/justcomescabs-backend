@@ -6,12 +6,59 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authService = exports.AuthService = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const index_js_1 = require("../../config/index.js");
 const db_js_1 = require("../../services/db.js");
 const sms_js_1 = require("../../services/sms.js");
 const errors_js_1 = require("../../common/errors.js");
 const shared_1 = require("@gatigo/shared");
 const logger_js_1 = require("../../common/logger.js");
+function saveDocumentImage(driverId, docType, input) {
+    if (!input || typeof input !== 'string')
+        return null;
+    // If already an absolute http/https URL, keep it
+    if (input.startsWith('http://') || input.startsWith('https://')) {
+        return input;
+    }
+    // If already a relative /uploads URL, keep it
+    if (input.startsWith('/uploads/')) {
+        return input;
+    }
+    // Check if it's base64 or data URI
+    let base64Data = input;
+    let ext = 'jpg';
+    if (input.includes(';base64,')) {
+        const parts = input.split(';base64,');
+        if (parts[0].includes('png'))
+            ext = 'png';
+        else if (parts[0].includes('webp'))
+            ext = 'webp';
+        base64Data = parts[1];
+    }
+    else if (input.startsWith('data:')) {
+        return null;
+    }
+    try {
+        const uploadsDir = path_1.default.resolve(process.cwd(), 'public/uploads/kyc');
+        if (!fs_1.default.existsSync(uploadsDir)) {
+            fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+        }
+        const cleanDocType = docType.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        const filename = `${driverId.replace(/[^a-z0-9]/gi, '_')}_${cleanDocType}_${Date.now()}.${ext}`;
+        const filePath = path_1.default.join(uploadsDir, filename);
+        const buffer = Buffer.from(base64Data, 'base64');
+        if (buffer.length < 10)
+            return null;
+        fs_1.default.writeFileSync(filePath, buffer);
+        logger_js_1.logger.info(`Saved KYC document for driver ${driverId} to ${filePath} (${buffer.length} bytes)`);
+        return `/uploads/kyc/${filename}`;
+    }
+    catch (err) {
+        logger_js_1.logger.error(`Failed to save KYC image for driver ${driverId}:`, err);
+        return null;
+    }
+}
 class AuthService {
     async sendOtp(phone, role) {
         if (!phone || phone.length < 10) {
@@ -180,11 +227,19 @@ class AuthService {
         const defaultRcImg = 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600';
         const defaultInsImg = 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=600';
         const defaultSelfieImg = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600';
+        const savedDl = saveDocumentImage(driver.id, 'dl', docs.dl);
+        const savedRc = saveDocumentImage(driver.id, 'rc', docs.rc);
+        const savedIns = saveDocumentImage(driver.id, 'insurance', docs.insurance);
+        const savedSelfie = saveDocumentImage(driver.id, 'selfie', docs.selfie);
+        if (savedSelfie && (!user.avatarUrl || user.avatarUrl.includes('unsplash'))) {
+            user.avatarUrl = savedSelfie;
+            await db_js_1.db.users.update(user.id, { avatarUrl: savedSelfie });
+        }
         const documentSpecs = [
-            { type: 'DRIVING_LICENSE_FRONT', number: data.dlNumber, url: typeof docs.dl === 'string' && docs.dl.startsWith('http') ? docs.dl : defaultDlImg },
-            { type: 'VEHICLE_RC', number: data.rcNumber, url: typeof docs.rc === 'string' && docs.rc.startsWith('http') ? docs.rc : defaultRcImg },
-            { type: 'VEHICLE_INSURANCE', number: data.insuranceNumber, url: typeof docs.insurance === 'string' && docs.insurance.startsWith('http') ? docs.insurance : defaultInsImg },
-            { type: 'DRIVER_PHOTO_SELFIE', number: undefined, url: typeof docs.selfie === 'string' && docs.selfie.startsWith('http') ? docs.selfie : defaultSelfieImg }
+            { type: 'DRIVING_LICENSE_FRONT', number: data.dlNumber, url: savedDl || (typeof docs.dl === 'string' && docs.dl.startsWith('http') ? docs.dl : defaultDlImg) },
+            { type: 'VEHICLE_RC', number: data.rcNumber, url: savedRc || (typeof docs.rc === 'string' && docs.rc.startsWith('http') ? docs.rc : defaultRcImg) },
+            { type: 'VEHICLE_INSURANCE', number: data.insuranceNumber, url: savedIns || (typeof docs.insurance === 'string' && docs.insurance.startsWith('http') ? docs.insurance : defaultInsImg) },
+            { type: 'DRIVER_PHOTO_SELFIE', number: undefined, url: savedSelfie || (typeof docs.selfie === 'string' && docs.selfie.startsWith('http') ? docs.selfie : defaultSelfieImg) }
         ];
         const existingDocs = await db_js_1.db.driverDocuments.findByDriverId(driver.id);
         for (const spec of documentSpecs) {

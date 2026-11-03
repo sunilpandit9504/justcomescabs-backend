@@ -6,6 +6,17 @@ import { BadRequestError, NotFoundError } from '../../common/errors.js';
 
 const router = Router();
 
+function resolveDocUrl(url: string | undefined): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  if (url.startsWith('/uploads/')) {
+    return `https://api.justcomes.in${url}`;
+  }
+  return url;
+}
+
 // Dashboard Overview Metrics
 router.get('/dashboard/stats', authenticateToken, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -129,21 +140,21 @@ router.get('/drivers', authenticateToken, requireAdmin, async (req: Request, res
         documents: {
           dl: {
             number: driver.licenseNumber,
-            photoUrl: dlDoc?.fileUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=700',
+            photoUrl: resolveDocUrl(dlDoc?.fileUrl) || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=700',
             status: dlDoc?.verificationStatus || (driver.kycStatus === KycStatus.VERIFIED ? 'VERIFIED' : 'PENDING')
           },
           rc: {
             number: primaryVehicle.rcNumber || primaryVehicle.registrationNumber,
-            photoUrl: rcDoc?.fileUrl || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=700',
+            photoUrl: resolveDocUrl(rcDoc?.fileUrl) || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=700',
             status: rcDoc?.verificationStatus || (driver.kycStatus === KycStatus.VERIFIED ? 'VERIFIED' : 'PENDING')
           },
           insurance: {
             number: 'POL-ICICI-' + driver.id.slice(-6).toUpperCase(),
-            photoUrl: insDoc?.fileUrl || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700',
+            photoUrl: resolveDocUrl(insDoc?.fileUrl) || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700',
             status: insDoc?.verificationStatus || (driver.kycStatus === KycStatus.VERIFIED ? 'VERIFIED' : 'PENDING')
           },
           selfie: {
-            photoUrl: selfieDoc?.fileUrl || user?.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=700',
+            photoUrl: resolveDocUrl(selfieDoc?.fileUrl) || resolveDocUrl(user?.avatarUrl) || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=700',
             status: selfieDoc?.verificationStatus || (driver.kycStatus === KycStatus.VERIFIED ? 'VERIFIED' : 'PENDING')
           }
         },
@@ -154,9 +165,9 @@ router.get('/drivers', authenticateToken, requireAdmin, async (req: Request, res
         },
         raw: {
           driver,
-          user,
+          user: user ? { ...user, avatarUrl: resolveDocUrl(user.avatarUrl) } : user,
           vehicles,
-          documents,
+          documents: documents.map(d => ({ ...d, fileUrl: resolveDocUrl(d.fileUrl) })),
           availability,
           wallet
         }
@@ -182,9 +193,12 @@ router.get('/drivers/pending-kyc', authenticateToken, requireAdmin, async (req: 
       const documents = await db.driverDocuments.findByDriverId(driver.id);
       return {
         driver,
-        user,
+        user: user ? { ...user, avatarUrl: resolveDocUrl(user.avatarUrl) } : user,
         vehicles,
-        documents
+        documents: documents.map(d => ({
+          ...d,
+          fileUrl: resolveDocUrl(d.fileUrl)
+        }))
       };
     }));
 

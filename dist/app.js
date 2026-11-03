@@ -53,6 +53,11 @@ function createApp() {
     if (activeDir) {
         app.use('/downloads', express_1.default.static(activeDir));
     }
+    const uploadsDir = path_1.default.resolve(process.cwd(), 'public/uploads');
+    if (!fs_1.default.existsSync(uploadsDir)) {
+        fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+    }
+    app.use('/uploads', express_1.default.static(uploadsDir));
     // Global middlewares
     app.use((0, helmet_1.default)({
         contentSecurityPolicy: false // Allow modern frontend dev tools
@@ -61,8 +66,8 @@ function createApp() {
         origin: '*',
         credentials: true
     }));
-    app.use(express_1.default.json());
-    app.use(express_1.default.urlencoded({ extended: true }));
+    app.use(express_1.default.json({ limit: '50mb' }));
+    app.use(express_1.default.urlencoded({ extended: true, limit: '50mb' }));
     app.use((0, morgan_1.default)('dev'));
     // Health check
     app.get('/health', (req, res) => {
