@@ -35,6 +35,40 @@ router.get('/profile', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(
         next(err);
     }
 });
+// Query KYC status by phone or driver ID (quick sync for mobile driver app)
+router.get('/kyc-status/:phoneOrDriverId', async (req, res, next) => {
+    try {
+        const { phoneOrDriverId } = req.params;
+        let driver = await db_js_1.db.driverProfiles.findById(phoneOrDriverId);
+        let user = null;
+        if (!driver) {
+            user = await db_js_1.db.users.findByPhone(phoneOrDriverId);
+            if (user) {
+                driver = await db_js_1.db.driverProfiles.findByUserId(user.id);
+            }
+        }
+        else {
+            user = await db_js_1.db.users.findById(driver.userId);
+        }
+        if (!driver) {
+            throw new errors_js_1.NotFoundError('Driver profile not found');
+        }
+        res.json({
+            success: true,
+            data: {
+                driverId: driver.id,
+                name: user?.name,
+                phone: user?.phone,
+                kycStatus: driver.kycStatus,
+                kycRejectionReason: driver.kycRejectionReason,
+                isVerified: driver.kycStatus === shared_1.KycStatus.VERIFIED
+            }
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+});
 // Update driver profile (banking/UPI & service city)
 router.put('/profile', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(shared_1.UserRole.DRIVER), async (req, res, next) => {
     try {

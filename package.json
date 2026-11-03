@@ -4,7 +4,7 @@
   "description": "GatiGo Mobility Platform Shared Backend API & Real-time Services",
   "main": "dist/main.js",
   "scripts": {
-    "build": "echo 'Production build ready in dist'",
+    "build": "tsc",
     "start": "node dist/main.js",
     "dev": "tsx watch src/main.ts",
     "prisma:generate": "prisma generate",

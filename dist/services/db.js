@@ -1,7 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.db = exports.inMemoryDb = void 0;
 const uuid_1 = require("uuid");
+const node_fs_1 = __importDefault(require("node:fs"));
+const node_path_1 = __importDefault(require("node:path"));
 const shared_1 = require("@gatigo/shared");
 function calculateHaversineKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
@@ -33,9 +38,101 @@ class InMemoryDatabase {
     auditLogs = [];
     zones = new Map();
     vehicleModels = new Map();
+    dbFilePath = node_path_1.default.resolve(process.cwd(), 'data', 'db.json');
+    saveTimeout = null;
     constructor() {
         this.initDefaultZones();
         this.initDefaultVehicleModels();
+        this.loadFromDisk();
+    }
+    scheduleSave() {
+        if (this.saveTimeout)
+            clearTimeout(this.saveTimeout);
+        this.saveTimeout = setTimeout(() => {
+            this.saveToDisk();
+        }, 400);
+    }
+    saveToDisk() {
+        try {
+            const dir = node_path_1.default.dirname(this.dbFilePath);
+            if (!node_fs_1.default.existsSync(dir)) {
+                node_fs_1.default.mkdirSync(dir, { recursive: true });
+            }
+            const data = {
+                users: Array.from(this.users.entries()),
+                customerProfiles: Array.from(this.customerProfiles.entries()),
+                driverProfiles: Array.from(this.driverProfiles.entries()),
+                vehicles: Array.from(this.vehicles.entries()),
+                driverDocuments: Array.from(this.driverDocuments.entries()),
+                driverAvailability: Array.from(this.driverAvailability.entries()),
+                savedAddresses: Array.from(this.savedAddresses.entries()),
+                bookings: Array.from(this.bookings.entries()),
+                offlineBookingDetails: Array.from(this.offlineBookingDetails.entries()),
+                rideSharingRequests: Array.from(this.rideSharingRequests.entries()),
+                commissionAgreements: Array.from(this.commissionAgreements.entries()),
+                wallets: Array.from(this.wallets.entries()),
+                walletTransactions: Array.from(this.walletTransactions.entries()),
+                payouts: Array.from(this.payouts.entries()),
+                adminUsers: Array.from(this.adminUsers.entries()),
+                notifications: Array.from(this.notifications.entries()),
+                auditLogs: this.auditLogs,
+                zones: Array.from(this.zones.entries()),
+                vehicleModels: Array.from(this.vehicleModels.entries())
+            };
+            node_fs_1.default.writeFileSync(this.dbFilePath, JSON.stringify(data, null, 2), 'utf-8');
+        }
+        catch (err) {
+            console.error('Failed to save database to disk:', err);
+        }
+    }
+    loadFromDisk() {
+        try {
+            if (node_fs_1.default.existsSync(this.dbFilePath)) {
+                const raw = node_fs_1.default.readFileSync(this.dbFilePath, 'utf-8');
+                const data = JSON.parse(raw);
+                if (data.users && Array.isArray(data.users))
+                    this.users = new Map(data.users);
+                if (data.customerProfiles && Array.isArray(data.customerProfiles))
+                    this.customerProfiles = new Map(data.customerProfiles);
+                if (data.driverProfiles && Array.isArray(data.driverProfiles))
+                    this.driverProfiles = new Map(data.driverProfiles);
+                if (data.vehicles && Array.isArray(data.vehicles))
+                    this.vehicles = new Map(data.vehicles);
+                if (data.driverDocuments && Array.isArray(data.driverDocuments))
+                    this.driverDocuments = new Map(data.driverDocuments);
+                if (data.driverAvailability && Array.isArray(data.driverAvailability))
+                    this.driverAvailability = new Map(data.driverAvailability);
+                if (data.savedAddresses && Array.isArray(data.savedAddresses))
+                    this.savedAddresses = new Map(data.savedAddresses);
+                if (data.bookings && Array.isArray(data.bookings))
+                    this.bookings = new Map(data.bookings);
+                if (data.offlineBookingDetails && Array.isArray(data.offlineBookingDetails))
+                    this.offlineBookingDetails = new Map(data.offlineBookingDetails);
+                if (data.rideSharingRequests && Array.isArray(data.rideSharingRequests))
+                    this.rideSharingRequests = new Map(data.rideSharingRequests);
+                if (data.commissionAgreements && Array.isArray(data.commissionAgreements))
+                    this.commissionAgreements = new Map(data.commissionAgreements);
+                if (data.wallets && Array.isArray(data.wallets))
+                    this.wallets = new Map(data.wallets);
+                if (data.walletTransactions && Array.isArray(data.walletTransactions))
+                    this.walletTransactions = new Map(data.walletTransactions);
+                if (data.payouts && Array.isArray(data.payouts))
+                    this.payouts = new Map(data.payouts);
+                if (data.adminUsers && Array.isArray(data.adminUsers))
+                    this.adminUsers = new Map(data.adminUsers);
+                if (data.notifications && Array.isArray(data.notifications))
+                    this.notifications = new Map(data.notifications);
+                if (data.auditLogs && Array.isArray(data.auditLogs))
+                    this.auditLogs = data.auditLogs;
+                if (data.zones && Array.isArray(data.zones) && data.zones.length > 0)
+                    this.zones = new Map(data.zones);
+                if (data.vehicleModels && Array.isArray(data.vehicleModels) && data.vehicleModels.length > 0)
+                    this.vehicleModels = new Map(data.vehicleModels);
+            }
+        }
+        catch (err) {
+            console.error('Failed to load database from disk:', err);
+        }
     }
     initDefaultZones() {
         const defaults = [
@@ -1203,6 +1300,17 @@ exports.db = {
     wallets: {
         findByUserId: async (userId) => exports.inMemoryDb.getOrCreateWallet(userId),
         findById: async (id) => exports.inMemoryDb.wallets.get(id),
+        create: async (data) => {
+            const wallet = {
+                id: (0, uuid_1.v4)(),
+                ...data,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+            exports.inMemoryDb.wallets.set(wallet.id, wallet);
+            exports.inMemoryDb.scheduleSave();
+            return wallet;
+        },
         updateBalance: async (walletId, amount, direction) => {
             const wallet = exports.inMemoryDb.wallets.get(walletId);
             if (!wallet)
@@ -1212,6 +1320,7 @@ exports.db = {
             wallet.balance = balanceAfter;
             wallet.updatedAt = new Date();
             exports.inMemoryDb.wallets.set(walletId, wallet);
+            exports.inMemoryDb.scheduleSave();
             return { wallet, balanceBefore, balanceAfter };
         }
     },

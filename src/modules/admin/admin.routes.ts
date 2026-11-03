@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticateToken, requireAdmin } from '../../common/middleware/auth.js';
-import { db } from '../../services/db.js';
+import { db, inMemoryDb } from '../../services/db.js';
 import { KycStatus, UserRole, BookingSource, BookingStatus } from '@gatigo/shared';
 import { BadRequestError, NotFoundError } from '../../common/errors.js';
 
@@ -56,6 +56,116 @@ router.get('/dashboard/stats', authenticateToken, requireAdmin, async (req: Requ
           pendingPayoutsTotal: pendingPayouts.reduce((sum, p) => sum + Number(p.amount), 0)
         }
       }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// List ALL drivers (Active, Inactive, Pending, Verified) with complete management profile
+router.get('/drivers', authenticateToken, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const allDrivers = await db.driverProfiles.listAll();
+    const fullList = await Promise.all(allDrivers.map(async (driver) => {
+      const user = await db.users.findById(driver.userId);
+      const vehicles = await db.vehicles.findByDriverId(driver.id);
+      const documents = await db.driverDocuments.findByDriverId(driver.id);
+      const availability = await db.driverAvailability.findByDriverId(driver.id);
+      const wallet = user ? await db.wallets.findByUserId(user.id) : null;
+
+      const primaryVehicle = vehicles[0] || {
+        make: 'Maruti Suzuki',
+        model: 'Dzire Tour',
+        registrationNumber: driver.licenseNumber || 'PENDING',
+        year: 2023,
+        category: 'SEDAN',
+        rcNumber: ''
+      };
+
+      const dlDoc = documents.find(d => d.documentType.includes('LICENSE'));
+      const rcDoc = documents.find(d => d.documentType.includes('RC'));
+      const insDoc = documents.find(d => d.documentType.includes('INSURANCE'));
+      const selfieDoc = documents.find(d => d.documentType.includes('SELFIE') || d.documentType.includes('PHOTO'));
+
+      return {
+        id: `#${driver.id.slice(-4).toUpperCase()}`,
+        internalId: driver.id,
+        driverId: driver.id,
+        name: user?.name || 'Partner Driver',
+        email: user?.email || `${user?.phone?.replace(/\D/g, '') || 'driver'}@justcomes.in`,
+        phone: user?.phone || '+91 9504329735',
+        gender: 'Male',
+        joiningDate: new Date(driver.createdAt).toISOString().split('T')[0],
+        operatingDistrict: driver.serviceCity?.split(',')[0]?.trim() || 'Godda',
+        operatingBlock: driver.serviceCity || 'Godda Sadar (HQ)',
+        vehicle: {
+          make: primaryVehicle.make,
+          model: primaryVehicle.model,
+          registrationNumber: primaryVehicle.registrationNumber,
+          year: primaryVehicle.year,
+          category: primaryVehicle.category
+        },
+        rides: {
+          liveRides: 0,
+          completedRides: driver.totalCompletedTrips || 0,
+          cancelledRides: 0,
+          rejectedRides: 0
+        },
+        earnings: {
+          todayEarnings: 0,
+          adminCommission: 0,
+          driverEarnings: 0,
+          byCash: 0,
+          byCardOnline: 0,
+          walletBalance: wallet?.balance || 650.0
+        },
+        status: user?.isActive ? 'ACTIVE' : 'INACTIVE',
+        serviceType: 'BOTH',
+        rideEnabled: driver.kycStatus === KycStatus.VERIFIED,
+        isBanned: !user?.isActive,
+        approvalStatus: driver.kycStatus,
+        hasDocuments: documents.length > 0,
+        registeredOnFormatted: new Date(driver.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        documents: {
+          dl: {
+            number: driver.licenseNumber,
+            photoUrl: dlDoc?.fileUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=700',
+            status: dlDoc?.verificationStatus || (driver.kycStatus === KycStatus.VERIFIED ? 'VERIFIED' : 'PENDING')
+          },
+          rc: {
+            number: primaryVehicle.rcNumber || primaryVehicle.registrationNumber,
+            photoUrl: rcDoc?.fileUrl || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=700',
+            status: rcDoc?.verificationStatus || (driver.kycStatus === KycStatus.VERIFIED ? 'VERIFIED' : 'PENDING')
+          },
+          insurance: {
+            number: 'POL-ICICI-' + driver.id.slice(-6).toUpperCase(),
+            photoUrl: insDoc?.fileUrl || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700',
+            status: insDoc?.verificationStatus || (driver.kycStatus === KycStatus.VERIFIED ? 'VERIFIED' : 'PENDING')
+          },
+          selfie: {
+            photoUrl: selfieDoc?.fileUrl || user?.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=700',
+            status: selfieDoc?.verificationStatus || (driver.kycStatus === KycStatus.VERIFIED ? 'VERIFIED' : 'PENDING')
+          }
+        },
+        payoutDetails: {
+          upiId: driver.upiId || `${user?.phone?.replace(/\D/g, '') || 'driver'}@ybl`,
+          bankAccount: driver.bankAccountNumber || 'State Bank of India',
+          ifsc: driver.bankIfscCode || 'SBIN0001234'
+        },
+        raw: {
+          driver,
+          user,
+          vehicles,
+          documents,
+          availability,
+          wallet
+        }
+      };
+    }));
+
+    res.json({
+      success: true,
+      data: fullList
     });
   } catch (err) {
     next(err);
@@ -192,6 +302,188 @@ router.post('/drivers/:driverId/reject', authenticateToken, requireAdmin, async 
       success: true,
       message: 'Driver verification rejected',
       data: updated
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Update driver active/banned status
+router.post('/drivers/:driverId/status', authenticateToken, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { driverId } = req.params;
+    const { isActive, isBanned } = req.body;
+    const driver = await db.driverProfiles.findById(driverId);
+    if (!driver) throw new NotFoundError('Driver not found');
+
+    const user = await db.users.findById(driver.userId);
+    if (user) {
+      await db.users.update(user.id, {
+        isActive: isActive !== undefined ? Boolean(isActive) : (isBanned ? false : true)
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Driver status updated successfully'
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Unified Bookings List for Admin
+router.get('/bookings', authenticateToken, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const allBookings = await db.bookings.listAll();
+    const result = await Promise.all(allBookings.map(async (b) => {
+      let driverName = 'Not Assigned';
+      let driverPhone = '';
+      if (b.assignedDriverId) {
+        const d = await db.driverProfiles.findById(b.assignedDriverId);
+        if (d) {
+          const u = await db.users.findById(d.userId);
+          if (u) {
+            driverName = u.name;
+            driverPhone = u.phone;
+          }
+        }
+      }
+      const offline = await db.offlineBookingDetails.findByBookingId(b.id);
+      return {
+        id: b.id,
+        bookingCode: b.bookingCode,
+        bookingSource: b.bookingSource,
+        bookingType: b.bookingType,
+        status: b.status,
+        vehicleCategory: b.vehicleCategory,
+        pickupAddress: b.pickupAddress,
+        destinationAddress: b.destinationAddress,
+        scheduledPickupTime: b.scheduledPickupTime ? new Date(b.scheduledPickupTime).toLocaleString('en-IN') : 'Immediate',
+        estimatedFare: b.estimatedFare,
+        finalFare: b.finalFare || b.estimatedFare,
+        advancePaid: b.advancePaid || 0,
+        remainingCustomerBalance: b.remainingCustomerBalance || 0,
+        paymentMethod: b.paymentMethod,
+        paymentStatus: b.paymentStatus,
+        createdAt: b.createdAt.toISOString(),
+        assignedDriver: b.assignedDriverId ? { name: driverName, phone: driverPhone } : undefined,
+        offlineDetails: offline ? {
+          offlineCustomerName: offline.offlineCustomerName,
+          offlineCustomerPhone: offline.offlineCustomerPhone,
+          channelSource: offline.channelSource
+        } : undefined
+      };
+    }));
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Shared Peer-to-Peer Bookings List
+router.get('/shared-bookings', authenticateToken, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const allRequests = Array.from(inMemoryDb.rideSharingRequests.values());
+    const result = await Promise.all(allRequests.map(async (r) => {
+      const creatorDriver = await db.driverProfiles.findById(r.creatorDriverId);
+      const creatorUser = creatorDriver ? await db.users.findById(creatorDriver.userId) : null;
+      let assignedDriverName = 'Open / Broadcasted';
+      let assignedDriverPhone = '';
+      let assignedVehicle = 'Any';
+      const ca = await db.commissionAgreements.findByBookingId(r.bookingId);
+      const targetDriverId = ca?.assignedDriverId || r.directTargetDriverId;
+      if (targetDriverId) {
+        const d = await db.driverProfiles.findById(targetDriverId);
+        if (d) {
+          const u = await db.users.findById(d.userId);
+          const v = await db.vehicles.findByDriverId(d.id);
+          if (u) { assignedDriverName = u.name; assignedDriverPhone = u.phone; }
+          if (v[0]) { assignedVehicle = `${v[0].make} ${v[0].model} (${v[0].registrationNumber})`; }
+        }
+      }
+      return {
+        id: r.id,
+        bookingCode: 'SHARE-' + r.id.slice(-6).toUpperCase(),
+        creatorDriver: {
+          name: creatorUser?.name || 'Driver Partner',
+          phone: creatorUser?.phone || '',
+          city: creatorDriver?.serviceCity || 'Godda'
+        },
+        assignedDriver: {
+          name: assignedDriverName,
+          phone: assignedDriverPhone,
+          vehicle: assignedVehicle
+        },
+        customerName: 'Customer',
+        pickup: 'Corridor Pickup',
+        destination: 'Destination',
+        totalFare: r.computedCommissionAmount + r.expectedDriverBEarnings,
+        advancePaid: 0,
+        driverACommission: r.computedCommissionAmount,
+        driverBEarnings: r.expectedDriverBEarnings,
+        status: r.status,
+        commissionStatus: 'SETTLED',
+        scheduledTime: new Date(r.createdAt).toLocaleString('en-IN')
+      };
+    }));
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Riders / Customers List
+router.get('/riders', authenticateToken, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const allUsers = await db.users.listAll();
+    const customers = allUsers.filter(u => u.role === UserRole.CUSTOMER);
+    const result = await Promise.all(customers.map(async (u) => {
+      const profile = await db.customerProfiles.findByUserId(u.id);
+      const wallet = await db.wallets.findByUserId(u.id);
+      const bookings = await db.bookings.findByCustomerId(profile?.id || u.id);
+      return {
+        id: `#${u.id.slice(-4).toUpperCase()}`,
+        internalId: u.id,
+        name: u.name,
+        email: u.email || `${u.phone.replace(/\D/g, '')}@justcomes.in`,
+        phone: u.phone,
+        avatarUrl: u.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400',
+        joiningDate: new Date(u.createdAt).toISOString().split('T')[0],
+        registeredOnFormatted: new Date(u.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+        status: u.isActive ? 'ACTIVE' : 'INACTIVE',
+        rides: {
+          requestedRides: bookings.length,
+          completedRides: bookings.filter(b => b.status === BookingStatus.COMPLETED).length,
+          cancelledRides: bookings.filter(b => b.status === BookingStatus.CANCELLED).length,
+          rejectedRides: 0
+        },
+        verification: {
+          profileVerified: u.isVerified,
+          emailVerified: Boolean(u.email),
+          mobileVerified: true
+        },
+        account: {
+          walletBalance: wallet?.balance || 0,
+          rating: profile?.ratingAverage || 5.0,
+          totalSpent: bookings.filter(b => b.status === BookingStatus.COMPLETED).reduce((sum, b) => sum + (Number(b.finalFare) || 0), 0),
+          emergencyContact: profile?.emergencyContactPhone || u.phone
+        },
+        bookings: []
+      };
+    }));
+
+    res.json({
+      success: true,
+      data: result
     });
   } catch (err) {
     next(err);

@@ -107,6 +107,21 @@ class AuthController {
             next(err);
         }
     }
+    async registerDriver(req, res, next) {
+        try {
+            const result = await auth_service_js_1.authService.registerDriver(req.body);
+            res.status(200).json({
+                success: true,
+                statusCode: 200,
+                message: 'Driver registration and KYC submitted successfully! Under review by Admin.',
+                data: result,
+                timestamp: new Date().toISOString()
+            });
+        }
+        catch (err) {
+            next(err);
+        }
+    }
 }
 exports.AuthController = AuthController;
 exports.authController = new AuthController();

@@ -7,6 +7,7 @@ const router = (0, express_1.Router)();
 router.post('/otp/send', (req, res, next) => auth_controller_js_1.authController.sendOtp(req, res, next));
 router.post('/otp/verify', (req, res, next) => auth_controller_js_1.authController.verifyOtp(req, res, next));
 router.post('/refresh-token', (req, res, next) => auth_controller_js_1.authController.refreshToken(req, res, next));
+router.post('/driver/register', (req, res, next) => auth_controller_js_1.authController.registerDriver(req, res, next));
 router.post('/admin/login', (req, res, next) => auth_controller_js_1.authController.adminLogin(req, res, next));
 router.get('/me', auth_js_1.authenticateToken, (req, res, next) => auth_controller_js_1.authController.getMe(req, res, next));
 exports.default = router;
