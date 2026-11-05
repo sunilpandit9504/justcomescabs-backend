@@ -166,8 +166,13 @@ export class RideSharingService {
         specialInstructions: details?.specialInstructions || null,
         expiresInSeconds: secondsRemaining,
         sharingMode: req.sharingMode,
-        isDirectInvite: req.sharingMode === SharingMode.DIRECT_OFFER,
-        matchingZone: 'Within 15 KM • Operational Hub',
+        isDirectInvite: req.sharingMode === SharingMode.DIRECT_OFFER || (req.sharingMode as any) === 'DIRECT_DRIVER',
+        directFriend: (req.sharingMode === SharingMode.DIRECT_OFFER || (req.sharingMode as any) === 'DIRECT_DRIVER')
+          ? (creatorUser?.name ? `${creatorUser.name} ( ${creatorUser.phone} )` : 'Direct Friend')
+          : null,
+        matchingZone: (req.sharingMode === SharingMode.DIRECT_OFFER || (req.sharingMode as any) === 'DIRECT_DRIVER')
+          ? 'Direct Friend Priority Invite'
+          : 'Within 15 KM • Operational Hub',
         // Privacy Guard: Mask customer identity
         customerSummary: {
           name: details ? `${details.offlineCustomerName.charAt(0)}***` : 'Customer',

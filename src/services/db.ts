@@ -1599,7 +1599,7 @@ export const db = {
         if (r.creatorDriverId === driverId) return false;
         
         // If shared in DIRECT mode to a specific driver, only show to that target driver
-        if (r.sharingMode === SharingMode.DIRECT_OFFER && r.directTargetDriverId) {
+        if ((r.sharingMode === SharingMode.DIRECT_OFFER || (r.sharingMode as string) === 'DIRECT_DRIVER') && r.directTargetDriverId) {
           return r.directTargetDriverId === driverId;
         }
 

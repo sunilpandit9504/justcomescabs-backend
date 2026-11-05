@@ -43,6 +43,61 @@ router.get('/:bookingId/live-tracking', authenticateToken, requireRoles(UserRole
   }
 });
 
+// Search registered drivers for direct friend sharing
+router.get('/search-drivers', authenticateToken, requireRoles(UserRole.DRIVER), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const callerDriverId = await resolveDriverId(req);
+    const query = String(req.query.q || req.query.query || '').trim().toLowerCase();
+
+    const allDrivers = await db.driverProfiles.listAll();
+    const results = [];
+
+    for (const driver of allDrivers) {
+      if (driver.id === callerDriverId) continue; // Exclude caller driver
+
+      const user = await db.users.findById(driver.userId);
+      if (!user) continue;
+
+      const name = user.name || 'Driver Partner';
+      const phone = user.phone || '';
+      const city = driver.serviceCity || 'Ranchi, JH';
+
+      if (query) {
+        const matches = name.toLowerCase().includes(query) ||
+                        phone.toLowerCase().includes(query) ||
+                        city.toLowerCase().includes(query);
+        if (!matches) continue;
+      }
+
+      const vehicles = await db.vehicles.findByDriverId(driver.id);
+      const vehicleDesc = vehicles[0]
+        ? `${vehicles[0].category || 'Cab'} • ${vehicles[0].model || 'Vehicle'} (${vehicles[0].registrationNumber || ''})`.trim()
+        : 'Sedan / Cab';
+      const availability = await db.driverAvailability.findByDriverId(driver.id);
+
+      results.push({
+        id: driver.id,
+        driverId: driver.id,
+        name,
+        phone,
+        formatted: `${name} ( ${phone} )`,
+        city,
+        vehicle: vehicleDesc,
+        rating: `${((driver as any).rating || 4.9).toFixed(1)} ★`,
+        isOnline: availability ? availability.isOnline : true,
+        kycStatus: driver.kycStatus
+      });
+    }
+
+    res.json({
+      success: true,
+      data: results
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Driver A publishes offline booking to sharing pool
 router.post('/publish', authenticateToken, requireRoles(UserRole.DRIVER), async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -54,11 +109,38 @@ router.post('/publish', authenticateToken, requireRoles(UserRole.DRIVER), async 
 
     const driverId = await resolveDriverId(req);
 
+    // Normalize sharing mode
+    const mode = (sharingMode === 'DIRECT_DRIVER' || sharingMode === 'DIRECT_OFFER')
+      ? 'DIRECT_OFFER'
+      : 'OPEN_DRIVER_NETWORK';
+
+    // Resolve direct target driver ID cleanly if provided
+    let targetDriverId = directTargetDriverId;
+    if (targetDriverId) {
+      const cleanTarget = String(targetDriverId).trim();
+      // 1. Direct match by ID
+      const directMatch = await db.driverProfiles.findById(cleanTarget);
+      if (directMatch) {
+        targetDriverId = directMatch.id;
+      } else {
+        // 2. Extract 10-digit phone number if phone or formatted string passed
+        const digits = cleanTarget.replace(/\D/g, '');
+        if (digits.length >= 10) {
+          const tenDigit = digits.slice(-10);
+          const u = await db.users.findByPhone(`+91${tenDigit}`) || await db.users.findByPhone(tenDigit);
+          if (u) {
+            const d = await db.driverProfiles.findByUserId(u.id);
+            if (d) targetDriverId = d.id;
+          }
+        }
+      }
+    }
+
     const result = await rideSharingService.publishForSharing({
       creatorDriverId: driverId,
       bookingId,
-      sharingMode,
-      directTargetDriverId,
+      sharingMode: mode as any,
+      directTargetDriverId: targetDriverId,
       commissionType,
       commissionValue: commissionValue ? Number(commissionValue) : undefined,
       expiresInMinutes: expiresInMinutes ? Number(expiresInMinutes) : undefined
@@ -66,7 +148,9 @@ router.post('/publish', authenticateToken, requireRoles(UserRole.DRIVER), async 
 
     res.status(200).json({
       success: true,
-      message: 'Offline booking published for peer driver sharing',
+      message: mode === 'DIRECT_OFFER'
+        ? 'Offline booking dispatched directly to friend driver'
+        : 'Offline booking published for peer driver sharing',
       data: result
     });
   } catch (err) {

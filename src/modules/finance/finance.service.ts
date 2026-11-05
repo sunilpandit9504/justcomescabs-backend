@@ -266,6 +266,102 @@ export class FinanceService {
       };
     }));
   }
+
+  /**
+   * Admin directly adjusts (CREDIT or DEBIT) a driver's wallet balance
+   */
+  public async adjustDriverWallet(
+    driverId: string,
+    action: 'CREDIT' | 'DEBIT',
+    amount: number,
+    adminId: string,
+    reason: string
+  ) {
+    const numAmount = Number(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      throw new BadRequestError('Amount must be a positive number greater than 0');
+    }
+
+    const driver = await db.driverProfiles.findById(driverId);
+    if (!driver) {
+      throw new NotFoundError(`Driver profile not found for ID: ${driverId}`);
+    }
+
+    let wallet = await db.wallets.findByUserId(driver.userId);
+    if (!wallet) {
+      // Auto-create wallet if not present
+      wallet = await db.wallets.create({
+        userId: driver.userId,
+        balance: 0,
+        lockedBalance: 0,
+        currency: 'INR',
+        isFrozen: false
+      });
+    }
+
+    const currentBal = Number(wallet.balance || 0);
+
+    if (action === 'DEBIT' && currentBal < numAmount) {
+      throw new BadRequestError(
+        `Cannot debit ₹${numAmount.toFixed(2)}. Available balance is only ₹${currentBal.toFixed(2)}`
+      );
+    }
+
+    const { balanceBefore, balanceAfter } = await db.wallets.updateBalance(wallet.id, numAmount, action);
+
+    const idempotencyKey = `ADMIN_ADJUST_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const transaction = await db.walletTransactions.create({
+      walletId: wallet.id,
+      idempotencyKey,
+      type: action === 'CREDIT' ? WalletTransactionType.TOPUP : WalletTransactionType.DISPUTE_ADJUSTMENT,
+      direction: action,
+      amount: numAmount,
+      balanceBefore,
+      balanceAfter,
+      status: 'SETTLED',
+      description: `Admin ${action}: ${reason || 'Manual balance adjustment'}`,
+      metadata: { adminId, reason, action, driverId }
+    });
+
+    try {
+      await db.auditLogs.create({
+        actorId: adminId,
+        action: `DRIVER_WALLET_${action}`,
+        entityType: 'WALLET',
+        entityId: wallet.id,
+        changes: { driverId, amount: numAmount, action, balanceBefore, balanceAfter, reason }
+      });
+    } catch (_) {}
+
+    logger.info(`Admin ${adminId} adjusted Driver ${driverId} wallet (${action} ₹${numAmount}) -> New Balance: ₹${balanceAfter}`);
+
+    return {
+      success: true,
+      driverId,
+      driverName: (await db.users.findById(driver.userId))?.name || 'Driver',
+      action,
+      amount: numAmount,
+      balanceBefore,
+      balanceAfter,
+      transaction
+    };
+  }
+
+  public async getDriverWalletHistory(driverId: string) {
+    const driver = await db.driverProfiles.findById(driverId);
+    if (!driver) throw new NotFoundError('Driver profile not found');
+
+    const wallet = await db.wallets.findByUserId(driver.userId);
+    if (!wallet) return { balance: 0, transactions: [] };
+
+    const transactions = await db.walletTransactions.findByWalletId(wallet.id);
+    return {
+      walletId: wallet.id,
+      balance: Number(wallet.balance || 0),
+      currency: wallet.currency || 'INR',
+      transactions: transactions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    };
+  }
 }
 
 export const financeService = new FinanceService();
