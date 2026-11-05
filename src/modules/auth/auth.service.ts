@@ -58,13 +58,21 @@ function saveDocumentImage(driverId: string, docType: string, input: any): strin
   }
 }
 
+export function normalizePhone(rawPhone: string): string {
+  if (!rawPhone) return '';
+  const digits = rawPhone.replace(/\D/g, '');
+  const last10 = digits.slice(-10);
+  return last10.length === 10 ? `+91${last10}` : rawPhone.trim();
+}
+
 export class AuthService {
   public async sendOtp(phone: string, role: UserRole) {
-    if (!phone || phone.length < 10) {
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone || normalizedPhone.replace(/\D/g, '').length < 10) {
       throw new BadRequestError('Invalid phone number format');
     }
 
-    const { sessionToken, expiresInSeconds, devOtp } = smsService.generateOtp(phone);
+    const { sessionToken, expiresInSeconds, devOtp } = smsService.generateOtp(normalizedPhone);
 
     return {
       sessionToken,
@@ -74,24 +82,35 @@ export class AuthService {
   }
 
   public async verifyOtp(phone: string, otp: string, sessionToken?: string, requestedRole: UserRole = UserRole.CUSTOMER, name?: string) {
-    const isValid = smsService.verifyOtp(phone, otp, sessionToken);
+    const normalizedPhone = normalizePhone(phone);
+    const isValid = smsService.verifyOtp(normalizedPhone, otp, sessionToken) || smsService.verifyOtp(phone, otp, sessionToken);
     if (!isValid) {
       throw new BadRequestError('Invalid or expired OTP');
     }
 
-    let user = await db.users.findByPhone(phone);
+    let user = await db.users.findByPhone(normalizedPhone);
     let isNewUser = false;
 
     if (!user) {
       isNewUser = true;
       user = await db.users.create({
-        phone,
-        name: name || (requestedRole === UserRole.DRIVER ? 'Partner Driver' : 'GatiGo Customer'),
-        preferredLanguage: 'en',
+        phone: normalizedPhone,
+        name: name || (requestedRole === UserRole.DRIVER ? 'Partner Driver' : 'Justcomes Customer'),
+        preferredLanguage: 'hi',
         role: requestedRole,
-        isActive: true,
+        isActive: requestedRole === UserRole.DRIVER ? false : true,
         isVerified: true
       });
+    } else {
+      const updates: any = {};
+      if (user.phone !== normalizedPhone) updates.phone = normalizedPhone;
+      if (name && (!user.name || user.name === 'Partner Driver' || user.name.includes('Driver A'))) updates.name = name;
+      if (requestedRole === UserRole.DRIVER && user.role !== UserRole.DRIVER && user.role !== UserRole.SUPER_ADMIN) {
+        updates.role = UserRole.DRIVER;
+      }
+      if (Object.keys(updates).length > 0) {
+        user = (await db.users.update(user.id, updates)) || user;
+      }
     }
 
     // Ensure wallet exists
@@ -175,11 +194,11 @@ export class AuthService {
       throw new BadRequestError('Driver name and phone number are required');
     }
 
-    const cleanPhone = data.phone.trim();
-    let user = await db.users.findByPhone(cleanPhone);
+    const normalizedPhone = normalizePhone(data.phone);
+    let user = await db.users.findByPhone(normalizedPhone);
     if (!user) {
       user = await db.users.create({
-        phone: cleanPhone,
+        phone: normalizedPhone,
         name: data.name.trim(),
         role: UserRole.DRIVER,
         isActive: false, // Inactive / Requested until Admin approves KYC
@@ -188,6 +207,7 @@ export class AuthService {
       });
     } else {
       user = await db.users.update(user.id, {
+        phone: normalizedPhone,
         name: data.name.trim(),
         role: UserRole.DRIVER,
         isActive: false,

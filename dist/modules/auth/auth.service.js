@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authService = exports.AuthService = void 0;
+exports.normalizePhone = normalizePhone;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const fs_1 = __importDefault(require("fs"));
@@ -60,12 +61,20 @@ function saveDocumentImage(driverId, docType, input) {
         return input.startsWith('data:') ? input : null;
     }
 }
+function normalizePhone(rawPhone) {
+    if (!rawPhone)
+        return '';
+    const digits = rawPhone.replace(/\D/g, '');
+    const last10 = digits.slice(-10);
+    return last10.length === 10 ? `+91${last10}` : rawPhone.trim();
+}
 class AuthService {
     async sendOtp(phone, role) {
-        if (!phone || phone.length < 10) {
+        const normalizedPhone = normalizePhone(phone);
+        if (!normalizedPhone || normalizedPhone.replace(/\D/g, '').length < 10) {
             throw new errors_js_1.BadRequestError('Invalid phone number format');
         }
-        const { sessionToken, expiresInSeconds, devOtp } = sms_js_1.smsService.generateOtp(phone);
+        const { sessionToken, expiresInSeconds, devOtp } = sms_js_1.smsService.generateOtp(normalizedPhone);
         return {
             sessionToken,
             expiresInSeconds,
@@ -73,22 +82,36 @@ class AuthService {
         };
     }
     async verifyOtp(phone, otp, sessionToken, requestedRole = shared_1.UserRole.CUSTOMER, name) {
-        const isValid = sms_js_1.smsService.verifyOtp(phone, otp, sessionToken);
+        const normalizedPhone = normalizePhone(phone);
+        const isValid = sms_js_1.smsService.verifyOtp(normalizedPhone, otp, sessionToken) || sms_js_1.smsService.verifyOtp(phone, otp, sessionToken);
         if (!isValid) {
             throw new errors_js_1.BadRequestError('Invalid or expired OTP');
         }
-        let user = await db_js_1.db.users.findByPhone(phone);
+        let user = await db_js_1.db.users.findByPhone(normalizedPhone);
         let isNewUser = false;
         if (!user) {
             isNewUser = true;
             user = await db_js_1.db.users.create({
-                phone,
-                name: name || (requestedRole === shared_1.UserRole.DRIVER ? 'Partner Driver' : 'GatiGo Customer'),
-                preferredLanguage: 'en',
+                phone: normalizedPhone,
+                name: name || (requestedRole === shared_1.UserRole.DRIVER ? 'Partner Driver' : 'Justcomes Customer'),
+                preferredLanguage: 'hi',
                 role: requestedRole,
-                isActive: true,
+                isActive: requestedRole === shared_1.UserRole.DRIVER ? false : true,
                 isVerified: true
             });
+        }
+        else {
+            const updates = {};
+            if (user.phone !== normalizedPhone)
+                updates.phone = normalizedPhone;
+            if (name && (!user.name || user.name === 'Partner Driver' || user.name.includes('Driver A')))
+                updates.name = name;
+            if (requestedRole === shared_1.UserRole.DRIVER && user.role !== shared_1.UserRole.DRIVER && user.role !== shared_1.UserRole.SUPER_ADMIN) {
+                updates.role = shared_1.UserRole.DRIVER;
+            }
+            if (Object.keys(updates).length > 0) {
+                user = (await db_js_1.db.users.update(user.id, updates)) || user;
+            }
         }
         // Ensure wallet exists
         db_js_1.db.wallets.findByUserId(user.id);
@@ -151,11 +174,11 @@ class AuthService {
         if (!data.phone || !data.name) {
             throw new errors_js_1.BadRequestError('Driver name and phone number are required');
         }
-        const cleanPhone = data.phone.trim();
-        let user = await db_js_1.db.users.findByPhone(cleanPhone);
+        const normalizedPhone = normalizePhone(data.phone);
+        let user = await db_js_1.db.users.findByPhone(normalizedPhone);
         if (!user) {
             user = await db_js_1.db.users.create({
-                phone: cleanPhone,
+                phone: normalizedPhone,
                 name: data.name.trim(),
                 role: shared_1.UserRole.DRIVER,
                 isActive: false, // Inactive / Requested until Admin approves KYC
@@ -165,6 +188,7 @@ class AuthService {
         }
         else {
             user = await db_js_1.db.users.update(user.id, {
+                phone: normalizedPhone,
                 name: data.name.trim(),
                 role: shared_1.UserRole.DRIVER,
                 isActive: false,

@@ -5,16 +5,29 @@ const offline_booking_service_js_1 = require("./offline-booking.service.js");
 const auth_js_1 = require("../../common/middleware/auth.js");
 const shared_1 = require("@gatigo/shared");
 const errors_js_1 = require("../../common/errors.js");
+const db_js_1 = require("../../services/db.js");
 const router = (0, express_1.Router)();
 // Create offline booking
 router.post('/', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(shared_1.UserRole.DRIVER), async (req, res, next) => {
     try {
         const { customerName, customerPhone, channelSource, tripType, vehicleCategory, pickup, destination, scheduledPickupTime, agreedTotalFare, advancePaid, specialInstructions, customerNotes, luggageCount, returnDateTime, advancePaymentMethod } = req.body;
-        if (!req.user.driverId) {
+        let driverId = req.user?.driverId;
+        if (!driverId && req.user?.id) {
+            const driver = await db_js_1.db.driverProfiles.findByUserId(req.user.id);
+            driverId = driver?.id;
+        }
+        if (!driverId && req.user?.phone) {
+            const u = await db_js_1.db.users.findByPhone(req.user.phone);
+            if (u) {
+                const d = await db_js_1.db.driverProfiles.findByUserId(u.id);
+                driverId = d?.id;
+            }
+        }
+        if (!driverId) {
             throw new errors_js_1.BadRequestError('Driver profile not linked to user');
         }
         const result = await offline_booking_service_js_1.offlineBookingService.createOfflineBooking({
-            creatorDriverId: req.user.driverId,
+            creatorDriverId: driverId,
             customerName,
             customerPhone,
             channelSource,

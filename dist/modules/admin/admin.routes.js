@@ -435,8 +435,9 @@ router.get('/bookings', auth_js_1.authenticateToken, auth_js_1.requireAdmin, asy
         const result = await Promise.all(allBookings.map(async (b) => {
             let driverName = 'Not Assigned';
             let driverPhone = '';
-            if (b.assignedDriverId) {
-                const d = await db_js_1.db.driverProfiles.findById(b.assignedDriverId);
+            const targetDriverId = b.assignedDriverId || b.creatorDriverId;
+            if (targetDriverId) {
+                const d = await db_js_1.db.driverProfiles.findById(targetDriverId);
                 if (d) {
                     const u = await db_js_1.db.users.findById(d.userId);
                     if (u) {
@@ -463,7 +464,7 @@ router.get('/bookings', auth_js_1.authenticateToken, auth_js_1.requireAdmin, asy
                 paymentMethod: b.paymentMethod,
                 paymentStatus: b.paymentStatus,
                 createdAt: b.createdAt.toISOString(),
-                assignedDriver: b.assignedDriverId ? { name: driverName, phone: driverPhone } : undefined,
+                assignedDriver: targetDriverId ? { name: driverName, phone: driverPhone } : undefined,
                 offlineDetails: offline ? {
                     offlineCustomerName: offline.offlineCustomerName,
                     offlineCustomerPhone: offline.offlineCustomerPhone,
@@ -484,9 +485,11 @@ router.get('/bookings', auth_js_1.authenticateToken, auth_js_1.requireAdmin, asy
 router.get('/shared-bookings', auth_js_1.authenticateToken, auth_js_1.requireAdmin, async (req, res, next) => {
     try {
         const allRequests = Array.from(db_js_1.inMemoryDb.rideSharingRequests.values());
-        const result = await Promise.all(allRequests.map(async (r) => {
+        const requestResults = await Promise.all(allRequests.map(async (r) => {
             const creatorDriver = await db_js_1.db.driverProfiles.findById(r.creatorDriverId);
             const creatorUser = creatorDriver ? await db_js_1.db.users.findById(creatorDriver.userId) : null;
+            const booking = await db_js_1.db.bookings.findById(r.bookingId);
+            const offline = await db_js_1.db.offlineBookingDetails.findByBookingId(r.bookingId);
             let assignedDriverName = 'Open / Broadcasted';
             let assignedDriverPhone = '';
             let assignedVehicle = 'Any';
@@ -505,10 +508,16 @@ router.get('/shared-bookings', auth_js_1.authenticateToken, auth_js_1.requireAdm
                         assignedVehicle = `${v[0].make} ${v[0].model} (${v[0].registrationNumber})`;
                     }
                 }
+                else if (targetDriverId.includes('(') || targetDriverId.length > 5) {
+                    // Direct Friend formatted string (e.g. Name ( Phone ))
+                    assignedDriverName = targetDriverId;
+                }
             }
+            const totalFare = Number(booking?.finalFare || booking?.estimatedFare || (r.computedCommissionAmount + r.expectedDriverBEarnings));
+            const advancePaid = Number(booking?.advancePaid || 0);
             return {
                 id: r.id,
-                bookingCode: 'SHARE-' + r.id.slice(-6).toUpperCase(),
+                bookingCode: booking?.bookingCode || ('SHARE-' + r.id.slice(-6).toUpperCase()),
                 creatorDriver: {
                     name: creatorUser?.name || 'Driver Partner',
                     phone: creatorUser?.phone || '',
@@ -519,21 +528,59 @@ router.get('/shared-bookings', auth_js_1.authenticateToken, auth_js_1.requireAdm
                     phone: assignedDriverPhone,
                     vehicle: assignedVehicle
                 },
-                customerName: 'Customer',
-                pickup: 'Corridor Pickup',
-                destination: 'Destination',
-                totalFare: r.computedCommissionAmount + r.expectedDriverBEarnings,
-                advancePaid: 0,
+                customerName: offline?.offlineCustomerName || 'Passenger',
+                pickup: booking?.pickupAddress || 'Corridor Pickup',
+                destination: booking?.destinationAddress || 'Destination',
+                totalFare,
+                advancePaid,
                 driverACommission: r.computedCommissionAmount,
                 driverBEarnings: r.expectedDriverBEarnings,
                 status: r.status,
-                commissionStatus: 'SETTLED',
-                scheduledTime: new Date(r.createdAt).toLocaleString('en-IN')
+                commissionStatus: r.status === 'COMPLETED' ? 'SETTLED' : 'ESCROW',
+                scheduledTime: booking?.scheduledPickupTime ? new Date(booking.scheduledPickupTime).toLocaleString('en-IN') : new Date(r.createdAt).toLocaleString('en-IN')
+            };
+        }));
+        // Also include all offline bookings created by drivers that might not be in rideSharingRequests yet
+        const allBookings = await db_js_1.db.bookings.listAll();
+        const offlineBookings = allBookings.filter(b => b.bookingSource === shared_1.BookingSource.OFFLINE_DRIVER_BOOKING);
+        const sharedBookingIds = new Set(allRequests.map(r => r.bookingId));
+        const unsharedResults = await Promise.all(offlineBookings
+            .filter(b => !sharedBookingIds.has(b.id))
+            .map(async (b) => {
+            const creatorDriver = b.creatorDriverId ? await db_js_1.db.driverProfiles.findById(b.creatorDriverId) : null;
+            const creatorUser = creatorDriver ? await db_js_1.db.users.findById(creatorDriver.userId) : null;
+            const offline = await db_js_1.db.offlineBookingDetails.findByBookingId(b.id);
+            const totalFare = Number(b.finalFare || b.estimatedFare || 0);
+            const advancePaid = Number(b.advancePaid || 0);
+            const commission = Math.round(totalFare * 0.1);
+            return {
+                id: b.id,
+                bookingCode: b.bookingCode,
+                creatorDriver: {
+                    name: creatorUser?.name || 'Driver Partner',
+                    phone: creatorUser?.phone || '',
+                    city: creatorDriver?.serviceCity || 'Godda'
+                },
+                assignedDriver: {
+                    name: 'Logged Offline (Direct)',
+                    phone: creatorUser?.phone || '',
+                    vehicle: 'Assigned by Driver'
+                },
+                customerName: offline?.offlineCustomerName || 'Passenger',
+                pickup: b.pickupAddress,
+                destination: b.destinationAddress,
+                totalFare,
+                advancePaid,
+                driverACommission: commission,
+                driverBEarnings: totalFare - commission,
+                status: b.status,
+                commissionStatus: b.status === 'COMPLETED' ? 'SETTLED' : 'PENDING',
+                scheduledTime: b.scheduledPickupTime ? new Date(b.scheduledPickupTime).toLocaleString('en-IN') : new Date(b.createdAt).toLocaleString('en-IN')
             };
         }));
         res.json({
             success: true,
-            data: result
+            data: [...requestResults, ...unsharedResults]
         });
     }
     catch (err) {

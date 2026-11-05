@@ -7,10 +7,30 @@ const shared_1 = require("@gatigo/shared");
 const errors_js_1 = require("../../common/errors.js");
 const tracking_service_js_1 = require("./tracking.service.js");
 const router = (0, express_1.Router)();
+const db_js_1 = require("../../services/db.js");
+async function resolveDriverId(req) {
+    let driverId = req.user?.driverId;
+    if (!driverId && req.user?.id) {
+        const driver = await db_js_1.db.driverProfiles.findByUserId(req.user.id);
+        driverId = driver?.id;
+    }
+    if (!driverId && req.user?.phone) {
+        const u = await db_js_1.db.users.findByPhone(req.user.phone);
+        if (u) {
+            const d = await db_js_1.db.driverProfiles.findByUserId(u.id);
+            driverId = d?.id;
+        }
+    }
+    if (!driverId) {
+        throw new errors_js_1.BadRequestError('Driver profile not linked to user');
+    }
+    return driverId;
+}
 // Driver A tracks Driver B's authorized live location, timeline & commission
 router.get('/:bookingId/live-tracking', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(shared_1.UserRole.DRIVER), async (req, res, next) => {
     try {
-        const trackingData = await tracking_service_js_1.trackingService.getDriverALiveTracking(req.params.bookingId, req.user.driverId);
+        const driverId = await resolveDriverId(req);
+        const trackingData = await tracking_service_js_1.trackingService.getDriverALiveTracking(req.params.bookingId, driverId);
         res.json({
             success: true,
             data: trackingData
@@ -27,8 +47,9 @@ router.post('/publish', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)
         if (!bookingId) {
             throw new errors_js_1.BadRequestError('bookingId is required');
         }
+        const driverId = await resolveDriverId(req);
         const result = await ride_sharing_service_js_1.rideSharingService.publishForSharing({
-            creatorDriverId: req.user.driverId,
+            creatorDriverId: driverId,
             bookingId,
             sharingMode,
             directTargetDriverId,
@@ -49,7 +70,8 @@ router.post('/publish', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)
 // Driver B browses incoming sharing offers
 router.get('/incoming-offers', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(shared_1.UserRole.DRIVER), async (req, res, next) => {
     try {
-        const offers = await ride_sharing_service_js_1.rideSharingService.getIncomingOffers(req.user.driverId);
+        const driverId = await resolveDriverId(req);
+        const offers = await ride_sharing_service_js_1.rideSharingService.getIncomingOffers(driverId);
         res.json({
             success: true,
             data: offers
@@ -66,7 +88,8 @@ router.post('/accept', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(
         if (!sharingRequestId) {
             throw new errors_js_1.BadRequestError('sharingRequestId is required');
         }
-        const result = await ride_sharing_service_js_1.rideSharingService.acceptSharingOffer(sharingRequestId, req.user.driverId);
+        const driverId = await resolveDriverId(req);
+        const result = await ride_sharing_service_js_1.rideSharingService.acceptSharingOffer(sharingRequestId, driverId);
         res.status(200).json({
             success: true,
             message: 'Shared ride successfully assigned to you',
@@ -80,7 +103,8 @@ router.post('/accept', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(
 // Driver A views their shared bookings
 router.get('/my-shared', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(shared_1.UserRole.DRIVER), async (req, res, next) => {
     try {
-        const sharedBookings = await ride_sharing_service_js_1.rideSharingService.getMySharedBookings(req.user.driverId);
+        const driverId = await resolveDriverId(req);
+        const sharedBookings = await ride_sharing_service_js_1.rideSharingService.getMySharedBookings(driverId);
         res.json({
             success: true,
             data: sharedBookings

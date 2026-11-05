@@ -250,4 +250,204 @@ router.post('/location/ping', authenticateToken, requireRoles(UserRole.DRIVER), 
   }
 });
 
+// Driver Ride History
+router.get('/history', authenticateToken, requireRoles(UserRole.DRIVER, UserRole.SUPER_ADMIN), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let driverId = req.user?.driverId;
+    if (!driverId && req.user?.id) {
+      const driver = await db.driverProfiles.findByUserId(req.user.id);
+      driverId = driver?.id;
+    }
+
+    if (!driverId) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const allBookings = await db.bookings.listAll();
+    const driverBookings = allBookings.filter(b => b.assignedDriverId === driverId || b.creatorDriverId === driverId);
+
+    // Sort descending by creation date
+    driverBookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const result = await Promise.all(driverBookings.map(async (b) => {
+      let customerName = 'Customer';
+      let customerPhone = '';
+      if (b.customerId) {
+        const cust = await db.customerProfiles.findById(b.customerId);
+        if (cust) {
+          const user = await db.users.findById(cust.userId);
+          if (user) {
+            customerName = user.name;
+            customerPhone = user.phone;
+          }
+        }
+      }
+
+      const offline = await db.offlineBookingDetails.findByBookingId(b.id);
+      if (offline) {
+        customerName = offline.offlineCustomerName;
+        customerPhone = offline.offlineCustomerPhone;
+      }
+
+      return {
+        id: b.id,
+        bookingCode: b.bookingCode,
+        status: b.status,
+        bookingSource: b.bookingSource,
+        bookingType: b.bookingType,
+        customerName,
+        customerPhone,
+        pickupAddress: b.pickupAddress,
+        dropAddress: b.destinationAddress,
+        destinationAddress: b.destinationAddress,
+        fare: b.finalFare || b.estimatedFare || 0,
+        estimatedFare: b.estimatedFare,
+        finalFare: b.finalFare || b.estimatedFare,
+        advancePaid: b.advancePaid || 0,
+        remainingCustomerBalance: b.remainingCustomerBalance || 0,
+        paymentMethod: b.paymentMethod,
+        paymentStatus: b.paymentStatus,
+        date: new Date(b.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+        time: new Date(b.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        createdAt: b.createdAt.toISOString(),
+        vehicleCategory: b.vehicleCategory,
+        rating: 5.0
+      };
+    }));
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Driver Performance & Earnings Analytics
+router.get('/performance', authenticateToken, requireRoles(UserRole.DRIVER, UserRole.SUPER_ADMIN), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let driverId = req.user?.driverId;
+    if (!driverId && req.user?.id) {
+      const driver = await db.driverProfiles.findByUserId(req.user.id);
+      driverId = driver?.id;
+    }
+
+    const period = ((req.query.period as string) || 'DAY').toUpperCase(); // 'DAY' | 'WEEK' | 'MONTH'
+
+    if (!driverId) {
+      return res.json({
+        success: true,
+        data: {
+          period,
+          totalEarnings: 0,
+          totalRides: 0,
+          hoursOnline: 0,
+          avgPerRide: 0,
+          barData: [],
+          breakdowns: []
+        }
+      });
+    }
+
+    const allBookings = await db.bookings.listAll();
+    const myBookings = allBookings.filter(b => b.assignedDriverId === driverId || b.creatorDriverId === driverId);
+
+    const now = new Date();
+    let filterStart = new Date(now);
+
+    if (period === 'WEEK') {
+      filterStart.setDate(now.getDate() - 7);
+    } else if (period === 'MONTH') {
+      filterStart.setDate(now.getDate() - 30);
+    } else {
+      // DAY (today starting 00:00:00)
+      filterStart.setHours(0, 0, 0, 0);
+    }
+
+    const periodBookings = myBookings.filter(b => new Date(b.createdAt) >= filterStart);
+    const completedBookings = periodBookings.filter(b => b.status === 'COMPLETED');
+
+    const totalEarnings = completedBookings.reduce((sum, b) => sum + Number(b.finalFare || b.estimatedFare || 0), 0);
+    const totalRides = completedBookings.length;
+    const avgPerRide = totalRides > 0 ? Math.round((totalEarnings / totalRides) * 100) / 100 : 0;
+    const hoursOnline = Math.min(12, Math.max(0.0, totalRides * 0.75));
+
+    // Dynamic Bar Data
+    let barData: Array<{ label: string; earnings: number; rides: number }> = [];
+
+    if (period === 'DAY') {
+      const slots = [
+        { label: '6-9 AM', start: 6, end: 9 },
+        { label: '9-12 PM', start: 9, end: 12 },
+        { label: '12-3 PM', start: 12, end: 15 },
+        { label: '3-6 PM', start: 15, end: 18 },
+        { label: '6-9 PM', start: 18, end: 21 },
+        { label: '9-12 AM', start: 21, end: 24 }
+      ];
+      barData = slots.map(s => {
+        const ridesInSlot = completedBookings.filter(b => {
+          const h = new Date(b.createdAt).getHours();
+          return h >= s.start && h < s.end;
+        });
+        const slotEarnings = ridesInSlot.reduce((acc, b) => acc + Number(b.finalFare || b.estimatedFare || 0), 0);
+        return { label: s.label, earnings: slotEarnings, rides: ridesInSlot.length };
+      });
+    } else if (period === 'WEEK') {
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      barData = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        const dayStr = days[d.getDay()];
+        const dayDate = d.toISOString().split('T')[0];
+        const ridesOnDay = completedBookings.filter(b => new Date(b.createdAt).toISOString().split('T')[0] === dayDate);
+        const dayEarnings = ridesOnDay.reduce((acc, b) => acc + Number(b.finalFare || b.estimatedFare || 0), 0);
+        barData.push({ label: dayStr, earnings: dayEarnings, rides: ridesOnDay.length });
+      }
+    } else {
+      // MONTH (4 weeks)
+      barData = [
+        { label: 'Wk 1', earnings: 0, rides: 0 },
+        { label: 'Wk 2', earnings: 0, rides: 0 },
+        { label: 'Wk 3', earnings: 0, rides: 0 },
+        { label: 'Wk 4', earnings: 0, rides: 0 }
+      ];
+      completedBookings.forEach(b => {
+        const rideDate = new Date(b.createdAt);
+        const diffDays = Math.floor((now.getTime() - rideDate.getTime()) / (1000 * 60 * 60 * 24));
+        const weekIdx = Math.min(3, Math.floor(diffDays / 7));
+        const slot = barData[3 - weekIdx];
+        if (slot) {
+          slot.earnings += Number(b.finalFare || b.estimatedFare || 0);
+          slot.rides += 1;
+        }
+      });
+    }
+
+    // Dynamic Breakdown List
+    const breakdowns = completedBookings.slice(0, 10).map((b) => ({
+      title: `${b.bookingCode} • ${b.pickupAddress.split(',')[0]} → ${b.destinationAddress.split(',')[0]}`,
+      rides: 1,
+      hours: `${b.estimatedDurationMinutes ? (b.estimatedDurationMinutes / 60).toFixed(1) : '0.5'}h`,
+      earnings: Number(b.finalFare || b.estimatedFare || 0)
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        period,
+        totalEarnings,
+        totalRides,
+        hoursOnline,
+        avgPerRide,
+        barData,
+        breakdowns
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

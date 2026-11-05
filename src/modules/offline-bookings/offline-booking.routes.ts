@@ -3,6 +3,7 @@ import { offlineBookingService } from './offline-booking.service.js';
 import { authenticateToken, requireRoles } from '../../common/middleware/auth.js';
 import { UserRole } from '@gatigo/shared';
 import { BadRequestError } from '../../common/errors.js';
+import { db } from '../../services/db.js';
 
 const router = Router();
 
@@ -27,12 +28,24 @@ router.post('/', authenticateToken, requireRoles(UserRole.DRIVER), async (req: R
       advancePaymentMethod
     } = req.body;
 
-    if (!req.user!.driverId) {
+    let driverId = req.user?.driverId;
+    if (!driverId && req.user?.id) {
+      const driver = await db.driverProfiles.findByUserId(req.user.id);
+      driverId = driver?.id;
+    }
+    if (!driverId && req.user?.phone) {
+      const u = await db.users.findByPhone(req.user.phone);
+      if (u) {
+        const d = await db.driverProfiles.findByUserId(u.id);
+        driverId = d?.id;
+      }
+    }
+    if (!driverId) {
       throw new BadRequestError('Driver profile not linked to user');
     }
 
     const result = await offlineBookingService.createOfflineBooking({
-      creatorDriverId: req.user!.driverId,
+      creatorDriverId: driverId,
       customerName,
       customerPhone,
       channelSource,
