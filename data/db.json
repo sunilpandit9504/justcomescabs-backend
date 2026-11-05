@@ -29,131 +29,13 @@
         "createdAt": "2026-11-05T01:37:07.587Z",
         "updatedAt": "2026-11-05T01:37:07.587Z"
       }
-    ],
-    [
-      "9ced93b7-0a7c-4a0f-92b3-f20833d7b610",
-      {
-        "id": "9ced93b7-0a7c-4a0f-92b3-f20833d7b610",
-        "phone": "9999988888",
-        "name": "Ramesh Test Driver",
-        "role": "DRIVER",
-        "isActive": true,
-        "isVerified": false,
-        "preferredLanguage": "hi",
-        "createdAt": "2026-11-05T01:46:43.150Z",
-        "updatedAt": "2026-11-05T01:49:04.198Z"
-      }
     ]
   ],
   "customerProfiles": [],
-  "driverProfiles": [
-    [
-      "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
-      {
-        "id": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
-        "userId": "9ced93b7-0a7c-4a0f-92b3-f20833d7b610",
-        "licenseNumber": "DL-JH01-20240099",
-        "experienceYears": 3,
-        "kycStatus": "REJECTED",
-        "serviceCity": "Godda",
-        "operatingState": "Jharkhand",
-        "ratingAverage": 5,
-        "totalCompletedTrips": 0,
-        "totalSharedCreated": 0,
-        "totalSharedFulfilled": 0,
-        "createdAt": "2026-11-05T01:46:43.150Z",
-        "updatedAt": "2026-11-05T01:49:04.198Z",
-        "kycRejectionReason": "DL photo is blurred"
-      }
-    ]
-  ],
-  "vehicles": [
-    [
-      "938c5a12-529f-44bd-b91e-dc1daba12dc1",
-      {
-        "id": "938c5a12-529f-44bd-b91e-dc1daba12dc1",
-        "driverId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
-        "category": "SEDAN",
-        "registrationNumber": "JH01-TEST-9999",
-        "make": "Maruti Suzuki",
-        "model": "Dzire Tour",
-        "color": "White",
-        "year": 2026,
-        "seatingCapacity": 4,
-        "isAc": true,
-        "rcNumber": "JH01-TEST-9999",
-        "isVerified": true,
-        "isActive": true,
-        "createdAt": "2026-11-05T01:46:43.150Z",
-        "updatedAt": "2026-11-05T01:49:04.187Z"
-      }
-    ]
-  ],
-  "driverDocuments": [
-    [
-      "feae7ab0-79b0-45d1-b8f7-77ec17d66dae",
-      {
-        "id": "feae7ab0-79b0-45d1-b8f7-77ec17d66dae",
-        "driverId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
-        "documentType": "DRIVING_LICENSE_FRONT",
-        "fileUrl": "https://images.unsplash.com/photo-1544717305-2782549b5136?w=600",
-        "documentNumber": "DL-JH01-20240099",
-        "verificationStatus": "REJECTED",
-        "createdAt": "2026-11-05T01:46:43.151Z",
-        "reviewedAt": "2026-11-05T01:49:04.198Z"
-      }
-    ],
-    [
-      "213575f9-0d17-473a-ab1b-81c374add3c2",
-      {
-        "id": "213575f9-0d17-473a-ab1b-81c374add3c2",
-        "driverId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
-        "documentType": "VEHICLE_RC",
-        "fileUrl": "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600",
-        "documentNumber": "JH01-TEST-9999",
-        "verificationStatus": "REJECTED",
-        "createdAt": "2026-11-05T01:46:43.151Z",
-        "reviewedAt": "2026-11-05T01:49:04.198Z"
-      }
-    ],
-    [
-      "24655dd3-3685-4567-b23d-ea0e2b9d869a",
-      {
-        "id": "24655dd3-3685-4567-b23d-ea0e2b9d869a",
-        "driverId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
-        "documentType": "VEHICLE_INSURANCE",
-        "fileUrl": "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=600",
-        "verificationStatus": "REJECTED",
-        "createdAt": "2026-11-05T01:46:43.151Z",
-        "reviewedAt": "2026-11-05T01:49:04.198Z"
-      }
-    ],
-    [
-      "4f3e7852-0b08-4cdf-b3b3-0f38febfbd08",
-      {
-        "id": "4f3e7852-0b08-4cdf-b3b3-0f38febfbd08",
-        "driverId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
-        "documentType": "DRIVER_PHOTO_SELFIE",
-        "fileUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600",
-        "verificationStatus": "REJECTED",
-        "createdAt": "2026-11-05T01:46:43.151Z",
-        "reviewedAt": "2026-11-05T01:49:04.198Z"
-      }
-    ]
-  ],
-  "driverAvailability": [
-    [
-      "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
-      {
-        "id": "66082823-a633-4410-ad08-0cc4170e5dc5",
-        "driverId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
-        "isOnline": false,
-        "currentLatitude": 24.8267,
-        "currentLongitude": 87.2156,
-        "lastPingAt": "2026-11-05T01:49:04.157Z"
-      }
-    ]
-  ],
+  "driverProfiles": [],
+  "vehicles": [],
+  "driverDocuments": [],
+  "driverAvailability": [],
   "savedAddresses": [],
   "bookings": [],
   "offlineBookingDetails": [],

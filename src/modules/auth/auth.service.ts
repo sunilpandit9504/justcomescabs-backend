@@ -32,7 +32,7 @@ function saveDocumentImage(driverId: string, docType: string, input: any): strin
     else if (parts[0].includes('webp')) ext = 'webp';
     base64Data = parts[1];
   } else if (input.startsWith('data:')) {
-    return null;
+    return input;
   }
 
   try {
@@ -45,14 +45,16 @@ function saveDocumentImage(driverId: string, docType: string, input: any): strin
     const filePath = path.join(uploadsDir, filename);
 
     const buffer = Buffer.from(base64Data, 'base64');
-    if (buffer.length < 10) return null;
+    if (buffer.length < 10) {
+      return input.startsWith('data:') ? input : null;
+    }
 
     fs.writeFileSync(filePath, buffer);
     logger.info(`Saved KYC document for driver ${driverId} to ${filePath} (${buffer.length} bytes)`);
     return `/uploads/kyc/${filename}`;
   } catch (err) {
-    logger.error(`Failed to save KYC image for driver ${driverId}:`, err);
-    return null;
+    logger.warn(`Could not write KYC image to disk, keeping direct payload for driver ${driverId}`);
+    return input.startsWith('data:') ? input : null;
   }
 }
 
@@ -180,14 +182,16 @@ export class AuthService {
         phone: cleanPhone,
         name: data.name.trim(),
         role: UserRole.DRIVER,
-        isActive: true,
+        isActive: false, // Inactive / Requested until Admin approves KYC
         isVerified: false,
         preferredLanguage: 'hi'
       });
     } else {
       user = await db.users.update(user.id, {
         name: data.name.trim(),
-        role: UserRole.DRIVER
+        role: UserRole.DRIVER,
+        isActive: false,
+        isVerified: false
       }) || user;
     }
 
@@ -245,28 +249,24 @@ export class AuthService {
       });
     }
 
-    // Documents setup
+    // Documents setup - strictly use driver uploaded documents with NO unsplash dummy fallbacks
     const docs = data.uploadedDocs || {};
-    const defaultDlImg = 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600';
-    const defaultRcImg = 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600';
-    const defaultInsImg = 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=600';
-    const defaultSelfieImg = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600';
 
     const savedDl = saveDocumentImage(driver.id, 'dl', docs.dl);
     const savedRc = saveDocumentImage(driver.id, 'rc', docs.rc);
     const savedIns = saveDocumentImage(driver.id, 'insurance', docs.insurance);
     const savedSelfie = saveDocumentImage(driver.id, 'selfie', docs.selfie);
 
-    if (savedSelfie && (!user.avatarUrl || user.avatarUrl.includes('unsplash'))) {
+    if (savedSelfie) {
       user.avatarUrl = savedSelfie;
       await db.users.update(user.id, { avatarUrl: savedSelfie });
     }
 
     const documentSpecs = [
-      { type: 'DRIVING_LICENSE_FRONT', number: data.dlNumber, url: savedDl || (typeof docs.dl === 'string' && docs.dl.startsWith('http') ? docs.dl : defaultDlImg) },
-      { type: 'VEHICLE_RC', number: data.rcNumber, url: savedRc || (typeof docs.rc === 'string' && docs.rc.startsWith('http') ? docs.rc : defaultRcImg) },
-      { type: 'VEHICLE_INSURANCE', number: data.insuranceNumber, url: savedIns || (typeof docs.insurance === 'string' && docs.insurance.startsWith('http') ? docs.insurance : defaultInsImg) },
-      { type: 'DRIVER_PHOTO_SELFIE', number: undefined, url: savedSelfie || (typeof docs.selfie === 'string' && docs.selfie.startsWith('http') ? docs.selfie : defaultSelfieImg) }
+      { type: 'DRIVING_LICENSE_FRONT', number: data.dlNumber, url: savedDl || (typeof docs.dl === 'string' ? docs.dl : '') },
+      { type: 'VEHICLE_RC', number: data.rcNumber, url: savedRc || (typeof docs.rc === 'string' ? docs.rc : '') },
+      { type: 'VEHICLE_INSURANCE', number: data.insuranceNumber, url: savedIns || (typeof docs.insurance === 'string' ? docs.insurance : '') },
+      { type: 'DRIVER_PHOTO_SELFIE', number: undefined, url: savedSelfie || (typeof docs.selfie === 'string' ? docs.selfie : '') }
     ];
 
     const existingDocs = await db.driverDocuments.findByDriverId(driver.id);

@@ -122,31 +122,35 @@ router.get('/drivers', auth_js_1.authenticateToken, auth_js_1.requireAdmin, asyn
                     byCardOnline: 0,
                     walletBalance: wallet?.balance || 650.0
                 },
-                status: user?.isActive ? 'ACTIVE' : 'INACTIVE',
+                status: (driver.kycStatus === shared_1.KycStatus.VERIFIED && user?.isActive)
+                    ? 'ACTIVE'
+                    : (driver.kycStatus === shared_1.KycStatus.REJECTED)
+                        ? 'INACTIVE'
+                        : 'REQUESTED',
                 serviceType: 'BOTH',
-                rideEnabled: driver.kycStatus === shared_1.KycStatus.VERIFIED,
-                isBanned: !user?.isActive,
+                rideEnabled: driver.kycStatus === shared_1.KycStatus.VERIFIED && !!user?.isActive,
+                isBanned: !user?.isActive && driver.kycStatus === shared_1.KycStatus.VERIFIED,
                 approvalStatus: driver.kycStatus,
                 hasDocuments: documents.length > 0,
                 registeredOnFormatted: new Date(driver.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
                 documents: {
                     dl: {
                         number: driver.licenseNumber,
-                        photoUrl: resolveDocUrl(dlDoc?.fileUrl) || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=700',
+                        photoUrl: resolveDocUrl(dlDoc?.fileUrl),
                         status: dlDoc?.verificationStatus || (driver.kycStatus === shared_1.KycStatus.VERIFIED ? 'VERIFIED' : 'PENDING')
                     },
                     rc: {
                         number: primaryVehicle.rcNumber || primaryVehicle.registrationNumber,
-                        photoUrl: resolveDocUrl(rcDoc?.fileUrl) || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=700',
+                        photoUrl: resolveDocUrl(rcDoc?.fileUrl),
                         status: rcDoc?.verificationStatus || (driver.kycStatus === shared_1.KycStatus.VERIFIED ? 'VERIFIED' : 'PENDING')
                     },
                     insurance: {
-                        number: 'POL-ICICI-' + driver.id.slice(-6).toUpperCase(),
-                        photoUrl: resolveDocUrl(insDoc?.fileUrl) || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=700',
+                        number: primaryVehicle.rcNumber ? `POL-${primaryVehicle.rcNumber}` : (driver.licenseNumber ? `POL-${driver.licenseNumber}` : ''),
+                        photoUrl: resolveDocUrl(insDoc?.fileUrl),
                         status: insDoc?.verificationStatus || (driver.kycStatus === shared_1.KycStatus.VERIFIED ? 'VERIFIED' : 'PENDING')
                     },
                     selfie: {
-                        photoUrl: resolveDocUrl(selfieDoc?.fileUrl) || resolveDocUrl(user?.avatarUrl) || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=700',
+                        photoUrl: resolveDocUrl(selfieDoc?.fileUrl) || resolveDocUrl(user?.avatarUrl),
                         status: selfieDoc?.verificationStatus || (driver.kycStatus === shared_1.KycStatus.VERIFIED ? 'VERIFIED' : 'PENDING')
                     }
                 },

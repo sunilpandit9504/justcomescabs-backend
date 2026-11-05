@@ -55,6 +55,28 @@ export function createApp(): Express {
     app.use('/downloads', express.static(activeDir));
   }
 
+  // Robust multi-path static handler for KYC and public uploads across environments
+  app.get('/uploads/*', (req, res, next) => {
+    const relPath = (req.params as any)[0] || req.path.replace(/^\/uploads\/?/, '');
+    const candidates = [
+      path.resolve(process.cwd(), 'public/uploads', relPath),
+      path.resolve(__dirname, '../public/uploads', relPath),
+      path.resolve(__dirname, '../../public/uploads', relPath),
+      path.resolve(__dirname, '../../../public/uploads', relPath)
+    ];
+    const found = candidates.find(p => {
+      try {
+        return fs.existsSync(p) && fs.statSync(p).isFile();
+      } catch {
+        return false;
+      }
+    });
+    if (found) {
+      return res.sendFile(found);
+    }
+    next();
+  });
+
   const uploadsDir = path.resolve(process.cwd(), 'public/uploads');
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
