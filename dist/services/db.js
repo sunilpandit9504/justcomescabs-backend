@@ -54,10 +54,10 @@ class InMemoryDatabase {
     }
     saveToDisk() {
         try {
-            const dir = node_path_1.default.dirname(this.dbFilePath);
-            if (!node_fs_1.default.existsSync(dir)) {
-                node_fs_1.default.mkdirSync(dir, { recursive: true });
-            }
+            const candidates = [
+                node_path_1.default.resolve(process.cwd(), 'data', 'db.json'),
+                node_path_1.default.resolve(__dirname, '..', '..', 'data', 'db.json')
+            ];
             const data = {
                 users: Array.from(this.users.entries()),
                 customerProfiles: Array.from(this.customerProfiles.entries()),
@@ -79,7 +79,17 @@ class InMemoryDatabase {
                 zones: Array.from(this.zones.entries()),
                 vehicleModels: Array.from(this.vehicleModels.entries())
             };
-            node_fs_1.default.writeFileSync(this.dbFilePath, JSON.stringify(data, null, 2), 'utf-8');
+            const jsonStr = JSON.stringify(data, null, 2);
+            for (const targetPath of candidates) {
+                try {
+                    const dir = node_path_1.default.dirname(targetPath);
+                    if (!node_fs_1.default.existsSync(dir)) {
+                        node_fs_1.default.mkdirSync(dir, { recursive: true });
+                    }
+                    node_fs_1.default.writeFileSync(targetPath, jsonStr, 'utf-8');
+                }
+                catch (_) { }
+            }
         }
         catch (err) {
             console.error('Failed to save database to disk:', err);
@@ -87,8 +97,13 @@ class InMemoryDatabase {
     }
     loadFromDisk() {
         try {
-            if (node_fs_1.default.existsSync(this.dbFilePath)) {
-                const raw = node_fs_1.default.readFileSync(this.dbFilePath, 'utf-8');
+            const candidates = [
+                node_path_1.default.resolve(process.cwd(), 'data', 'db.json'),
+                node_path_1.default.resolve(__dirname, '..', '..', 'data', 'db.json')
+            ];
+            const targetPath = candidates.find(p => node_fs_1.default.existsSync(p));
+            if (targetPath) {
+                const raw = node_fs_1.default.readFileSync(targetPath, 'utf-8');
                 const data = JSON.parse(raw);
                 if (data.users && Array.isArray(data.users))
                     this.users = new Map(data.users);
@@ -952,9 +967,17 @@ class InMemoryDatabase {
     }
     // Helper Finders
     findUserByPhone(phone) {
+        if (!phone)
+            return undefined;
+        const rawClean = phone.replace(/\D/g, '');
+        const cleanLast10 = rawClean.slice(-10);
         for (const u of this.users.values()) {
             if (u.phone === phone)
                 return u;
+            const uClean = u.phone ? u.phone.replace(/\D/g, '') : '';
+            if (cleanLast10 && cleanLast10.length >= 10 && uClean.endsWith(cleanLast10)) {
+                return u;
+            }
         }
         return undefined;
     }
@@ -1007,6 +1030,7 @@ class InMemoryDatabase {
                 updatedAt: new Date()
             };
             this.wallets.set(wallet.id, wallet);
+            this.scheduleSave();
         }
         return wallet;
     }
@@ -1026,6 +1050,7 @@ exports.db = {
                 updatedAt: new Date()
             };
             exports.inMemoryDb.users.set(user.id, user);
+            exports.inMemoryDb.scheduleSave();
             return user;
         },
         update: async (id, data) => {
@@ -1034,6 +1059,7 @@ exports.db = {
                 return null;
             const updated = { ...existing, ...data, updatedAt: new Date() };
             exports.inMemoryDb.users.set(id, updated);
+            exports.inMemoryDb.scheduleSave();
             return updated;
         },
         listAll: async () => Array.from(exports.inMemoryDb.users.values())
@@ -1049,6 +1075,7 @@ exports.db = {
                 updatedAt: new Date()
             };
             exports.inMemoryDb.customerProfiles.set(profile.id, profile);
+            exports.inMemoryDb.scheduleSave();
             return profile;
         },
         update: async (id, data) => {
@@ -1057,11 +1084,40 @@ exports.db = {
                 return null;
             const updated = { ...existing, ...data, updatedAt: new Date() };
             exports.inMemoryDb.customerProfiles.set(id, updated);
+            exports.inMemoryDb.scheduleSave();
             return updated;
         }
     },
     driverProfiles: {
-        findById: async (id) => exports.inMemoryDb.driverProfiles.get(id),
+        findById: async (id) => {
+            if (!id)
+                return undefined;
+            const cleanId = id.trim().replace(/^#/, '');
+            // 1. Direct match by ID
+            let profile = exports.inMemoryDb.driverProfiles.get(cleanId) || exports.inMemoryDb.driverProfiles.get(id);
+            if (profile)
+                return profile;
+            // 2. Direct match by userId
+            profile = exports.inMemoryDb.findDriverByUserId(cleanId) || exports.inMemoryDb.findDriverByUserId(id);
+            if (profile)
+                return profile;
+            // 3. Match via user phone
+            const user = exports.inMemoryDb.findUserByPhone(cleanId);
+            if (user) {
+                profile = exports.inMemoryDb.findDriverByUserId(user.id);
+                if (profile)
+                    return profile;
+            }
+            // 4. Suffix or short ID match
+            for (const d of exports.inMemoryDb.driverProfiles.values()) {
+                if (d.id.toLowerCase() === cleanId.toLowerCase() ||
+                    d.id.slice(-4).toLowerCase() === cleanId.toLowerCase() ||
+                    d.id.replace(/-/g, '').toLowerCase().endsWith(cleanId.toLowerCase())) {
+                    return d;
+                }
+            }
+            return undefined;
+        },
         findByUserId: async (userId) => exports.inMemoryDb.findDriverByUserId(userId),
         create: async (data) => {
             const profile = {
@@ -1071,14 +1127,24 @@ exports.db = {
                 updatedAt: new Date()
             };
             exports.inMemoryDb.driverProfiles.set(profile.id, profile);
+            exports.inMemoryDb.scheduleSave();
             return profile;
         },
         update: async (id, data) => {
-            const existing = exports.inMemoryDb.driverProfiles.get(id);
+            let existing = exports.inMemoryDb.driverProfiles.get(id);
+            let targetKey = id;
+            if (!existing) {
+                const found = await exports.db.driverProfiles.findById(id);
+                if (found) {
+                    existing = found;
+                    targetKey = found.id;
+                }
+            }
             if (!existing)
                 return null;
             const updated = { ...existing, ...data, updatedAt: new Date() };
-            exports.inMemoryDb.driverProfiles.set(id, updated);
+            exports.inMemoryDb.driverProfiles.set(targetKey, updated);
+            exports.inMemoryDb.scheduleSave();
             return updated;
         },
         listPendingKyc: async () => {
@@ -1099,6 +1165,7 @@ exports.db = {
                 updatedAt: new Date()
             };
             exports.inMemoryDb.vehicles.set(vehicle.id, vehicle);
+            exports.inMemoryDb.scheduleSave();
             return vehicle;
         },
         update: async (id, data) => {
@@ -1107,10 +1174,12 @@ exports.db = {
                 return null;
             const updated = { ...existing, ...data, updatedAt: new Date() };
             exports.inMemoryDb.vehicles.set(id, updated);
+            exports.inMemoryDb.scheduleSave();
             return updated;
         }
     },
     driverDocuments: {
+        findById: async (id) => exports.inMemoryDb.driverDocuments.get(id),
         findByDriverId: async (driverId) => {
             return Array.from(exports.inMemoryDb.driverDocuments.values()).filter(d => d.driverId === driverId);
         },
@@ -1121,7 +1190,17 @@ exports.db = {
                 createdAt: new Date()
             };
             exports.inMemoryDb.driverDocuments.set(doc.id, doc);
+            exports.inMemoryDb.scheduleSave();
             return doc;
+        },
+        update: async (id, data) => {
+            const existing = exports.inMemoryDb.driverDocuments.get(id);
+            if (!existing)
+                return null;
+            const updated = { ...existing, ...data };
+            exports.inMemoryDb.driverDocuments.set(id, updated);
+            exports.inMemoryDb.scheduleSave();
+            return updated;
         }
     },
     driverAvailability: {
@@ -1131,6 +1210,7 @@ exports.db = {
             if (existing) {
                 const updated = { ...existing, ...data, lastPingAt: new Date() };
                 exports.inMemoryDb.driverAvailability.set(driverId, updated);
+                exports.inMemoryDb.scheduleSave();
                 return updated;
             }
             const created = {
@@ -1144,6 +1224,7 @@ exports.db = {
                 lastPingAt: new Date()
             };
             exports.inMemoryDb.driverAvailability.set(driverId, created);
+            exports.inMemoryDb.scheduleSave();
             return created;
         },
         findOnlineDriversNearby: async (lat, lng, maxDistanceKm = 15) => {

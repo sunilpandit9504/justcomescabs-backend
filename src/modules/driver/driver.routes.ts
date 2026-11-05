@@ -40,12 +40,12 @@ router.get('/profile', authenticateToken, requireRoles(UserRole.DRIVER, UserRole
 // Query KYC status by phone or driver ID (quick sync for mobile driver app)
 router.get('/kyc-status/:phoneOrDriverId', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { phoneOrDriverId } = req.params;
-    let driver = await db.driverProfiles.findById(phoneOrDriverId);
+    const rawParam = decodeURIComponent(req.params.phoneOrDriverId || '').trim();
+    let driver = await db.driverProfiles.findById(rawParam);
     let user = null;
 
     if (!driver) {
-      user = await db.users.findByPhone(phoneOrDriverId);
+      user = await db.users.findByPhone(rawParam);
       if (user) {
         driver = await db.driverProfiles.findByUserId(user.id);
       }
@@ -57,6 +57,9 @@ router.get('/kyc-status/:phoneOrDriverId', async (req: Request, res: Response, n
       throw new NotFoundError('Driver profile not found');
     }
 
+    const documents = await db.driverDocuments.findByDriverId(driver.id);
+    const vehicles = await db.vehicles.findByDriverId(driver.id);
+
     res.json({
       success: true,
       data: {
@@ -65,7 +68,9 @@ router.get('/kyc-status/:phoneOrDriverId', async (req: Request, res: Response, n
         phone: user?.phone,
         kycStatus: driver.kycStatus,
         kycRejectionReason: driver.kycRejectionReason,
-        isVerified: driver.kycStatus === KycStatus.VERIFIED
+        isVerified: driver.kycStatus === KycStatus.VERIFIED,
+        documents,
+        vehicles
       }
     });
   } catch (err) {

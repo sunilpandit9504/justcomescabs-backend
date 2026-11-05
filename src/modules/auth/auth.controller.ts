@@ -97,7 +97,10 @@ export class AuthController {
 
       const user = await db.users.findById(req.user.id);
       const customer = req.user.customerId ? await db.customerProfiles.findById(req.user.customerId) : null;
-      const driver = req.user.driverId ? await db.driverProfiles.findById(req.user.driverId) : null;
+      let driver = req.user.driverId ? await db.driverProfiles.findById(req.user.driverId) : null;
+      if (!driver) {
+        driver = (await db.driverProfiles.findByUserId(req.user.id)) || null;
+      }
       const wallet = await db.wallets.findByUserId(req.user.id);
 
       res.status(200).json({

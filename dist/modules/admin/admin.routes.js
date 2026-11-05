@@ -210,28 +210,37 @@ router.post('/drivers/:driverId/verify', auth_js_1.authenticateToken, auth_js_1.
             throw new errors_js_1.NotFoundError('Driver profile not found');
         }
         // Update driver KYC status to VERIFIED
-        const updated = await db_js_1.db.driverProfiles.update(driverId, {
+        const updated = await db_js_1.db.driverProfiles.update(driver.id, {
             kycStatus: shared_1.KycStatus.VERIFIED,
             kycRejectionReason: undefined
         });
+        // Mark user as verified and active
+        const user = await db_js_1.db.users.findById(driver.userId);
+        if (user) {
+            await db_js_1.db.users.update(user.id, { isVerified: true, isActive: true });
+        }
         // Verify all registered vehicles for this driver
-        const vehicles = await db_js_1.db.vehicles.findByDriverId(driverId);
+        const vehicles = await db_js_1.db.vehicles.findByDriverId(driver.id);
         for (const v of vehicles) {
             await db_js_1.db.vehicles.update(v.id, { isVerified: true });
         }
         // Also mark all driver documents as VERIFIED
-        const docs = await db_js_1.db.driverDocuments.findByDriverId(driverId);
+        const docs = await db_js_1.db.driverDocuments.findByDriverId(driver.id);
         for (const d of docs) {
-            d.verificationStatus = 'VERIFIED';
-            d.reviewedAt = new Date();
+            await db_js_1.db.driverDocuments.update(d.id, {
+                verificationStatus: 'VERIFIED',
+                reviewedAt: new Date()
+            });
         }
         await db_js_1.db.auditLogs.create({
             actorId: req.user.id,
             action: 'DRIVER_KYC_VERIFIED',
             entityType: 'DRIVER_PROFILE',
-            entityId: driverId,
+            entityId: driver.id,
             changes: { oldStatus: driver.kycStatus, newStatus: shared_1.KycStatus.VERIFIED }
         });
+        // Save to disk immediately so no state is lost on process restart
+        db_js_1.inMemoryDb.saveToDisk();
         res.json({
             success: true,
             message: 'Driver and associated vehicles verified successfully',
@@ -246,23 +255,100 @@ router.post('/drivers/:driverId/verify', auth_js_1.authenticateToken, auth_js_1.
 router.post('/drivers/:driverId/documents/:docTypeOrId/verify', auth_js_1.authenticateToken, auth_js_1.requireAdmin, async (req, res, next) => {
     try {
         const { driverId, docTypeOrId } = req.params;
-        const docs = await db_js_1.db.driverDocuments.findByDriverId(driverId);
-        let target = docs.find(d => d.id === docTypeOrId || d.documentType.toUpperCase() === docTypeOrId.toUpperCase());
+        const driver = await db_js_1.db.driverProfiles.findById(driverId);
+        if (!driver) {
+            throw new errors_js_1.NotFoundError('Driver profile not found');
+        }
+        const docs = await db_js_1.db.driverDocuments.findByDriverId(driver.id);
+        const cleanType = docTypeOrId.toUpperCase();
+        let target = docs.find(d => d.id === docTypeOrId ||
+            d.documentType.toUpperCase() === cleanType ||
+            (cleanType === 'DL' && d.documentType.includes('LICENSE')) ||
+            (cleanType === 'RC' && d.documentType.includes('RC')) ||
+            (cleanType === 'INSURANCE' && d.documentType.includes('INSURANCE')) ||
+            (cleanType === 'SELFIE' && (d.documentType.includes('SELFIE') || d.documentType.includes('PHOTO'))));
         if (target) {
-            target.verificationStatus = 'VERIFIED';
-            target.reviewedAt = new Date();
+            target = await db_js_1.db.driverDocuments.update(target.id, {
+                verificationStatus: 'VERIFIED',
+                reviewedAt: new Date()
+            }) || target;
         }
         else {
             target = await db_js_1.db.driverDocuments.create({
-                driverId,
+                driverId: driver.id,
                 documentType: docTypeOrId,
                 fileUrl: '',
                 verificationStatus: 'VERIFIED'
             });
         }
+        // Check if all essential documents (DL, RC, Insurance) are now verified
+        const allDocs = await db_js_1.db.driverDocuments.findByDriverId(driver.id);
+        const hasDl = allDocs.some(d => d.documentType.includes('LICENSE') && d.verificationStatus === 'VERIFIED');
+        const hasRc = allDocs.some(d => d.documentType.includes('RC') && d.verificationStatus === 'VERIFIED');
+        const hasIns = allDocs.some(d => d.documentType.includes('INSURANCE') && d.verificationStatus === 'VERIFIED');
+        let driverUpdated = false;
+        if (hasDl && hasRc && hasIns) {
+            await db_js_1.db.driverProfiles.update(driver.id, {
+                kycStatus: shared_1.KycStatus.VERIFIED,
+                kycRejectionReason: undefined
+            });
+            const user = await db_js_1.db.users.findById(driver.userId);
+            if (user) {
+                await db_js_1.db.users.update(user.id, { isVerified: true, isActive: true });
+            }
+            const vehicles = await db_js_1.db.vehicles.findByDriverId(driver.id);
+            for (const v of vehicles) {
+                await db_js_1.db.vehicles.update(v.id, { isVerified: true });
+            }
+            driverUpdated = true;
+        }
+        db_js_1.inMemoryDb.saveToDisk();
         res.json({
             success: true,
             message: `Document ${docTypeOrId} verified successfully`,
+            data: target,
+            allVerified: driverUpdated
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// Reject single document for a driver
+router.post('/drivers/:driverId/documents/:docTypeOrId/reject', auth_js_1.authenticateToken, auth_js_1.requireAdmin, async (req, res, next) => {
+    try {
+        const { driverId, docTypeOrId } = req.params;
+        const { reason } = req.body;
+        const driver = await db_js_1.db.driverProfiles.findById(driverId);
+        if (!driver) {
+            throw new errors_js_1.NotFoundError('Driver profile not found');
+        }
+        const docs = await db_js_1.db.driverDocuments.findByDriverId(driver.id);
+        const cleanType = docTypeOrId.toUpperCase();
+        let target = docs.find(d => d.id === docTypeOrId ||
+            d.documentType.toUpperCase() === cleanType ||
+            (cleanType === 'DL' && d.documentType.includes('LICENSE')) ||
+            (cleanType === 'RC' && d.documentType.includes('RC')) ||
+            (cleanType === 'INSURANCE' && d.documentType.includes('INSURANCE')) ||
+            (cleanType === 'SELFIE' && (d.documentType.includes('SELFIE') || d.documentType.includes('PHOTO'))));
+        if (target) {
+            target = await db_js_1.db.driverDocuments.update(target.id, {
+                verificationStatus: 'REJECTED',
+                reviewedAt: new Date()
+            }) || target;
+        }
+        await db_js_1.db.driverProfiles.update(driver.id, {
+            kycStatus: shared_1.KycStatus.REJECTED,
+            kycRejectionReason: reason || `Document ${docTypeOrId} rejected`
+        });
+        const user = await db_js_1.db.users.findById(driver.userId);
+        if (user) {
+            await db_js_1.db.users.update(user.id, { isVerified: false });
+        }
+        db_js_1.inMemoryDb.saveToDisk();
+        res.json({
+            success: true,
+            message: `Document ${docTypeOrId} rejected successfully`,
             data: target
         });
     }
@@ -282,17 +368,29 @@ router.post('/drivers/:driverId/reject', auth_js_1.authenticateToken, auth_js_1.
         if (!driver) {
             throw new errors_js_1.NotFoundError('Driver not found');
         }
-        const updated = await db_js_1.db.driverProfiles.update(driverId, {
+        const updated = await db_js_1.db.driverProfiles.update(driver.id, {
             kycStatus: shared_1.KycStatus.REJECTED,
             kycRejectionReason: reason
         });
+        const user = await db_js_1.db.users.findById(driver.userId);
+        if (user) {
+            await db_js_1.db.users.update(user.id, { isVerified: false });
+        }
+        const docs = await db_js_1.db.driverDocuments.findByDriverId(driver.id);
+        for (const d of docs) {
+            await db_js_1.db.driverDocuments.update(d.id, {
+                verificationStatus: 'REJECTED',
+                reviewedAt: new Date()
+            });
+        }
         await db_js_1.db.auditLogs.create({
             actorId: req.user.id,
             action: 'DRIVER_KYC_REJECTED',
             entityType: 'DRIVER_PROFILE',
-            entityId: driverId,
+            entityId: driver.id,
             changes: { reason }
         });
+        db_js_1.inMemoryDb.saveToDisk();
         res.json({
             success: true,
             message: 'Driver verification rejected',

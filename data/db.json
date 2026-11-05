@@ -1,0 +1,1291 @@
+{
+  "users": [
+    [
+      "2e56e1bd-33c7-4721-8d40-a3597c4fa31c",
+      {
+        "id": "2e56e1bd-33c7-4721-8d40-a3597c4fa31c",
+        "phone": "+919504329735",
+        "email": "admin@justcomes.in",
+        "name": "Justcomes Chief Admin",
+        "preferredLanguage": "hi",
+        "role": "SUPER_ADMIN",
+        "isActive": true,
+        "isVerified": true,
+        "createdAt": "2026-11-05T01:37:07.447Z",
+        "updatedAt": "2026-11-05T01:37:07.447Z"
+      }
+    ],
+    [
+      "b6262bd6-464d-4436-8d42-997625892aa8",
+      {
+        "id": "b6262bd6-464d-4436-8d42-997625892aa8",
+        "phone": "+919876599999",
+        "email": "admin@gatigo.in",
+        "name": "GatiGo Chief Admin",
+        "preferredLanguage": "en",
+        "role": "SUPER_ADMIN",
+        "isActive": true,
+        "isVerified": true,
+        "createdAt": "2026-11-05T01:37:07.587Z",
+        "updatedAt": "2026-11-05T01:37:07.587Z"
+      }
+    ],
+    [
+      "9ced93b7-0a7c-4a0f-92b3-f20833d7b610",
+      {
+        "id": "9ced93b7-0a7c-4a0f-92b3-f20833d7b610",
+        "phone": "9999988888",
+        "name": "Ramesh Test Driver",
+        "role": "DRIVER",
+        "isActive": true,
+        "isVerified": false,
+        "preferredLanguage": "hi",
+        "createdAt": "2026-11-05T01:46:43.150Z",
+        "updatedAt": "2026-11-05T01:49:04.198Z"
+      }
+    ]
+  ],
+  "customerProfiles": [],
+  "driverProfiles": [
+    [
+      "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
+      {
+        "id": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
+        "userId": "9ced93b7-0a7c-4a0f-92b3-f20833d7b610",
+        "licenseNumber": "DL-JH01-20240099",
+        "experienceYears": 3,
+        "kycStatus": "REJECTED",
+        "serviceCity": "Godda",
+        "operatingState": "Jharkhand",
+        "ratingAverage": 5,
+        "totalCompletedTrips": 0,
+        "totalSharedCreated": 0,
+        "totalSharedFulfilled": 0,
+        "createdAt": "2026-11-05T01:46:43.150Z",
+        "updatedAt": "2026-11-05T01:49:04.198Z",
+        "kycRejectionReason": "DL photo is blurred"
+      }
+    ]
+  ],
+  "vehicles": [
+    [
+      "938c5a12-529f-44bd-b91e-dc1daba12dc1",
+      {
+        "id": "938c5a12-529f-44bd-b91e-dc1daba12dc1",
+        "driverId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
+        "category": "SEDAN",
+        "registrationNumber": "JH01-TEST-9999",
+        "make": "Maruti Suzuki",
+        "model": "Dzire Tour",
+        "color": "White",
+        "year": 2026,
+        "seatingCapacity": 4,
+        "isAc": true,
+        "rcNumber": "JH01-TEST-9999",
+        "isVerified": true,
+        "isActive": true,
+        "createdAt": "2026-11-05T01:46:43.150Z",
+        "updatedAt": "2026-11-05T01:49:04.187Z"
+      }
+    ]
+  ],
+  "driverDocuments": [
+    [
+      "feae7ab0-79b0-45d1-b8f7-77ec17d66dae",
+      {
+        "id": "feae7ab0-79b0-45d1-b8f7-77ec17d66dae",
+        "driverId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
+        "documentType": "DRIVING_LICENSE_FRONT",
+        "fileUrl": "https://images.unsplash.com/photo-1544717305-2782549b5136?w=600",
+        "documentNumber": "DL-JH01-20240099",
+        "verificationStatus": "REJECTED",
+        "createdAt": "2026-11-05T01:46:43.151Z",
+        "reviewedAt": "2026-11-05T01:49:04.198Z"
+      }
+    ],
+    [
+      "213575f9-0d17-473a-ab1b-81c374add3c2",
+      {
+        "id": "213575f9-0d17-473a-ab1b-81c374add3c2",
+        "driverId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
+        "documentType": "VEHICLE_RC",
+        "fileUrl": "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600",
+        "documentNumber": "JH01-TEST-9999",
+        "verificationStatus": "REJECTED",
+        "createdAt": "2026-11-05T01:46:43.151Z",
+        "reviewedAt": "2026-11-05T01:49:04.198Z"
+      }
+    ],
+    [
+      "24655dd3-3685-4567-b23d-ea0e2b9d869a",
+      {
+        "id": "24655dd3-3685-4567-b23d-ea0e2b9d869a",
+        "driverId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
+        "documentType": "VEHICLE_INSURANCE",
+        "fileUrl": "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=600",
+        "verificationStatus": "REJECTED",
+        "createdAt": "2026-11-05T01:46:43.151Z",
+        "reviewedAt": "2026-11-05T01:49:04.198Z"
+      }
+    ],
+    [
+      "4f3e7852-0b08-4cdf-b3b3-0f38febfbd08",
+      {
+        "id": "4f3e7852-0b08-4cdf-b3b3-0f38febfbd08",
+        "driverId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
+        "documentType": "DRIVER_PHOTO_SELFIE",
+        "fileUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600",
+        "verificationStatus": "REJECTED",
+        "createdAt": "2026-11-05T01:46:43.151Z",
+        "reviewedAt": "2026-11-05T01:49:04.198Z"
+      }
+    ]
+  ],
+  "driverAvailability": [
+    [
+      "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
+      {
+        "id": "66082823-a633-4410-ad08-0cc4170e5dc5",
+        "driverId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
+        "isOnline": false,
+        "currentLatitude": 24.8267,
+        "currentLongitude": 87.2156,
+        "lastPingAt": "2026-11-05T01:49:04.157Z"
+      }
+    ]
+  ],
+  "savedAddresses": [],
+  "bookings": [],
+  "offlineBookingDetails": [],
+  "rideSharingRequests": [],
+  "commissionAgreements": [],
+  "wallets": [
+    [
+      "3ab00f62-2f62-4297-96d5-421d18c43399",
+      {
+        "id": "3ab00f62-2f62-4297-96d5-421d18c43399",
+        "userId": "9ced93b7-0a7c-4a0f-92b3-f20833d7b610",
+        "currency": "INR",
+        "balance": 0,
+        "lockedBalance": 0,
+        "isFrozen": false,
+        "createdAt": "2026-11-05T01:46:43.151Z",
+        "updatedAt": "2026-11-05T01:46:43.151Z"
+      }
+    ]
+  ],
+  "walletTransactions": [],
+  "payouts": [],
+  "adminUsers": [
+    [
+      "4d9c2187-c6b8-4027-ad04-9f5e68410dcd",
+      {
+        "id": "4d9c2187-c6b8-4027-ad04-9f5e68410dcd",
+        "userId": "2e56e1bd-33c7-4721-8d40-a3597c4fa31c",
+        "department": "CENTRAL_OPERATIONS",
+        "passwordHash": "$2b$10$fqHOADHoLwje4gMCMZh6gu866IaoKvlRVpsK9idQQt2GLXHIFHGoO",
+        "createdAt": "2026-11-05T01:37:07.587Z"
+      }
+    ],
+    [
+      "204c3454-6066-4ec3-9aa4-9b4912bbf412",
+      {
+        "id": "204c3454-6066-4ec3-9aa4-9b4912bbf412",
+        "userId": "b6262bd6-464d-4436-8d42-997625892aa8",
+        "department": "CENTRAL_OPERATIONS",
+        "passwordHash": "$2b$10$q71H4SEFchdy1Athm6onTeJD94u8Suf/93BsIR1fVPhf8rcjddeiq",
+        "createdAt": "2026-11-05T01:37:07.683Z"
+      }
+    ]
+  ],
+  "notifications": [],
+  "auditLogs": [
+    {
+      "id": "06b355b2-2bbd-4d11-b3df-d6e8c0128de6",
+      "actorId": "2e56e1bd-33c7-4721-8d40-a3597c4fa31c",
+      "action": "DRIVER_KYC_VERIFIED",
+      "entityType": "DRIVER_PROFILE",
+      "entityId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
+      "changes": {
+        "oldStatus": "UNDER_REVIEW",
+        "newStatus": "VERIFIED"
+      },
+      "createdAt": "2026-11-05T01:48:37.139Z"
+    },
+    {
+      "id": "a026e10f-79be-4a14-86ee-9a685cfc6845",
+      "actorId": "2e56e1bd-33c7-4721-8d40-a3597c4fa31c",
+      "action": "DRIVER_KYC_VERIFIED",
+      "entityType": "DRIVER_PROFILE",
+      "entityId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
+      "changes": {
+        "oldStatus": "UNDER_REVIEW",
+        "newStatus": "VERIFIED"
+      },
+      "createdAt": "2026-11-05T01:49:04.187Z"
+    },
+    {
+      "id": "b5e5fffd-8ff4-40d8-a09f-2f58d22e3aa1",
+      "actorId": "2e56e1bd-33c7-4721-8d40-a3597c4fa31c",
+      "action": "DRIVER_KYC_REJECTED",
+      "entityType": "DRIVER_PROFILE",
+      "entityId": "62b4418b-f016-42ef-b451-ab0ffaf26ebb",
+      "changes": {
+        "reason": "DL photo is blurred"
+      },
+      "createdAt": "2026-11-05T01:49:04.198Z"
+    }
+  ],
+  "zones": [
+    [
+      "zone-godda-sadar",
+      {
+        "id": "zone-godda-sadar",
+        "name": "Godda Sadar Block Hub",
+        "district": "Godda",
+        "state": "Jharkhand",
+        "centerLatitude": 24.8267,
+        "centerLongitude": 87.2156,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 20,
+        "isActive": true,
+        "landmarks": [
+          "Godda Bus Stand",
+          "Rautara Chowk",
+          "Bhatdiha",
+          "Sikatiya",
+          "Kargil Chowk"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-godda-mahagama",
+      {
+        "id": "zone-godda-mahagama",
+        "name": "Mahagama Block Hub",
+        "district": "Godda",
+        "state": "Jharkhand",
+        "centerLatitude": 25.0253,
+        "centerLongitude": 87.3117,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 15,
+        "isActive": true,
+        "landmarks": [
+          "Mahagama Main Bazar",
+          "Urjanagar ECL Colony",
+          "Rajmahal OCP",
+          "Kankhor"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-godda-pathargama",
+      {
+        "id": "zone-godda-pathargama",
+        "name": "Pathargama Block Hub",
+        "district": "Godda",
+        "state": "Jharkhand",
+        "centerLatitude": 24.9515,
+        "centerLongitude": 87.2721,
+        "radiusKm": 10,
+        "surgeMultiplier": 1,
+        "activeDrivers": 12,
+        "isActive": true,
+        "landmarks": [
+          "Gandhi Chowk",
+          "Pipra Village",
+          "Barahat Link",
+          "Maheshpur",
+          "Korla"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-godda-poreyahat",
+      {
+        "id": "zone-godda-poreyahat",
+        "name": "Poreyahat Block Hub",
+        "district": "Godda",
+        "state": "Jharkhand",
+        "centerLatitude": 24.6321,
+        "centerLongitude": 87.1642,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 14,
+        "isActive": true,
+        "landmarks": [
+          "Poreyahat Chowk",
+          "Hansdiha Junction",
+          "Barmasia",
+          "Dumka Highway"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-godda-boarijor",
+      {
+        "id": "zone-godda-boarijor",
+        "name": "Boarijor (Lalmatia) Block Hub",
+        "district": "Godda",
+        "state": "Jharkhand",
+        "centerLatitude": 25.0418,
+        "centerLongitude": 87.4812,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 10,
+        "isActive": true,
+        "landmarks": [
+          "Lalmatia Coal Hub",
+          "Bada Boarijor",
+          "Simra",
+          "ECL Mining Area"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-godda-meharma",
+      {
+        "id": "zone-godda-meharma",
+        "name": "Meharma Block Hub",
+        "district": "Godda",
+        "state": "Jharkhand",
+        "centerLatitude": 25.1952,
+        "centerLongitude": 87.3512,
+        "radiusKm": 10,
+        "surgeMultiplier": 1,
+        "activeDrivers": 9,
+        "isActive": true,
+        "landmarks": [
+          "Meharma Main Bazar",
+          "Bhagaiya",
+          "Belbadda",
+          "Pirpainti Border Link"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-godda-thakurgangti",
+      {
+        "id": "zone-godda-thakurgangti",
+        "name": "Thakur Gangti Block Hub",
+        "district": "Godda",
+        "state": "Jharkhand",
+        "centerLatitude": 25.1524,
+        "centerLongitude": 87.4215,
+        "radiusKm": 10,
+        "surgeMultiplier": 1,
+        "activeDrivers": 8,
+        "isActive": true,
+        "landmarks": [
+          "Thakur Gangti Chowk",
+          "Mirzapur",
+          "Ranga",
+          "Kahalgaon Border"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-godda-sundarpahari",
+      {
+        "id": "zone-godda-sundarpahari",
+        "name": "Sundarpahari Block Hub",
+        "district": "Godda",
+        "state": "Jharkhand",
+        "centerLatitude": 24.7512,
+        "centerLongitude": 87.3541,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 8,
+        "isActive": true,
+        "landmarks": [
+          "Sundarpahari Chowk",
+          "Damru",
+          "Chandana",
+          "Tilabhita Tribal Belt"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-godda-basantrai",
+      {
+        "id": "zone-godda-basantrai",
+        "name": "Basantrai Block Hub",
+        "district": "Godda",
+        "state": "Jharkhand",
+        "centerLatitude": 24.9921,
+        "centerLongitude": 87.1518,
+        "radiusKm": 10,
+        "surgeMultiplier": 1,
+        "activeDrivers": 7,
+        "isActive": true,
+        "landmarks": [
+          "Basantrai Historic Pokhar",
+          "Sanjha Chowk",
+          "Kadma",
+          "Maheshlitola"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-deoghar",
+      {
+        "id": "zone-deoghar",
+        "name": "Deoghar Pilgrimage & Smart City Hub",
+        "district": "Deoghar",
+        "state": "Jharkhand",
+        "centerLatitude": 24.4826,
+        "centerLongitude": 86.7,
+        "radiusKm": 25,
+        "surgeMultiplier": 1,
+        "activeDrivers": 24,
+        "isActive": true,
+        "landmarks": [
+          "Baba Baidyanath Temple",
+          "Jasidih Junction",
+          "Deoghar Airport",
+          "Tower Chowk"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-sahebganj-sadar",
+      {
+        "id": "zone-sahebganj-sadar",
+        "name": "Sahebganj Sadar Block Hub",
+        "district": "Sahebganj",
+        "state": "Jharkhand",
+        "centerLatitude": 25.2425,
+        "centerLongitude": 87.6433,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 20,
+        "isActive": true,
+        "landmarks": [
+          "Ganga Multi-Modal Port",
+          "Sahebganj Railway Jn",
+          "Sakrigali Ghat",
+          "Chowk Bazar"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-sahebganj-rajmahal",
+      {
+        "id": "zone-sahebganj-rajmahal",
+        "name": "Rajmahal Block Hub",
+        "district": "Sahebganj",
+        "state": "Jharkhand",
+        "centerLatitude": 25.05,
+        "centerLongitude": 87.84,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 15,
+        "isActive": true,
+        "landmarks": [
+          "Rajmahal Ferry Ghat",
+          "Singhi Dalan",
+          "Neelkanth Mahadev",
+          "Historic Capital Ruins",
+          "Mangalhat"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-sahebganj-barharwa",
+      {
+        "id": "zone-sahebganj-barharwa",
+        "name": "Barharwa Junction Block Hub",
+        "district": "Sahebganj",
+        "state": "Jharkhand",
+        "centerLatitude": 24.8569,
+        "centerLongitude": 87.7788,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 18,
+        "isActive": true,
+        "landmarks": [
+          "Barharwa Railway Junction",
+          "Bindu Dham Temple",
+          "Main Cloth Market",
+          "Kankjol",
+          "Pakur Link"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-sahebganj-barhait",
+      {
+        "id": "zone-sahebganj-barhait",
+        "name": "Barhait Block Hub",
+        "district": "Sahebganj",
+        "state": "Jharkhand",
+        "centerLatitude": 24.8967,
+        "centerLongitude": 87.6083,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 12,
+        "isActive": true,
+        "landmarks": [
+          "Bhognadih (Sido-Kanhu Memorial)",
+          "Barhait Bazar",
+          "Kadamgachi",
+          "Gopikandar Link"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-sahebganj-borio",
+      {
+        "id": "zone-sahebganj-borio",
+        "name": "Borio Block Hub",
+        "district": "Sahebganj",
+        "state": "Jharkhand",
+        "centerLatitude": 25.045,
+        "centerLongitude": 87.648,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 10,
+        "isActive": true,
+        "landmarks": [
+          "Borio Block Chowk",
+          "Borio Main Hatia",
+          "Chhata Pahari",
+          "Rakshi"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-sahebganj-mandro",
+      {
+        "id": "zone-sahebganj-mandro",
+        "name": "Mandro (Fossil Park) Block Hub",
+        "district": "Sahebganj",
+        "state": "Jharkhand",
+        "centerLatitude": 25.138,
+        "centerLongitude": 87.562,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 10,
+        "isActive": true,
+        "landmarks": [
+          "Mandro Fossil Park & Geo Site",
+          "Mirza Chowki Border",
+          "Teliagarhi Pass",
+          "Karamtola"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-sahebganj-taljhari",
+      {
+        "id": "zone-sahebganj-taljhari",
+        "name": "Taljhari (Motijharna) Block Hub",
+        "district": "Sahebganj",
+        "state": "Jharkhand",
+        "centerLatitude": 25.078,
+        "centerLongitude": 87.755,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 9,
+        "isActive": true,
+        "landmarks": [
+          "Motijharna Waterfall",
+          "Taljhari Railway Station",
+          "Maharajpur",
+          "Karanpura"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-sahebganj-udhwa",
+      {
+        "id": "zone-sahebganj-udhwa",
+        "name": "Udhwa (Bird Sanctuary) Block Hub",
+        "district": "Sahebganj",
+        "state": "Jharkhand",
+        "centerLatitude": 24.982,
+        "centerLongitude": 87.868,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 11,
+        "isActive": true,
+        "landmarks": [
+          "Udhwa Lake Bird Sanctuary (Berhale/Pataura)",
+          "Radhanagar Bazar",
+          "Ganga Diara",
+          "Farakka Link"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-sahebganj-pathna",
+      {
+        "id": "zone-sahebganj-pathna",
+        "name": "Pathna Block Hub",
+        "district": "Sahebganj",
+        "state": "Jharkhand",
+        "centerLatitude": 24.887,
+        "centerLongitude": 87.702,
+        "radiusKm": 10,
+        "surgeMultiplier": 1,
+        "activeDrivers": 8,
+        "isActive": true,
+        "landmarks": [
+          "Pathna Block HQ",
+          "Dharampur Chowk",
+          "Khendi",
+          "Hiranpur Link Road"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-pakur-sadar",
+      {
+        "id": "zone-pakur-sadar",
+        "name": "Pakur Sadar Block Hub",
+        "district": "Pakur",
+        "state": "Jharkhand",
+        "centerLatitude": 24.6333,
+        "centerLongitude": 87.8489,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 20,
+        "isActive": true,
+        "landmarks": [
+          "Pakur Railway Station",
+          "Birsa Chowk",
+          "Harindanga Bazar",
+          "Stone Industrial Belt",
+          "Rani Jyotirmoyee Stadium"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-pakur-hiranpur",
+      {
+        "id": "zone-pakur-hiranpur",
+        "name": "Hiranpur Block Hub",
+        "district": "Pakur",
+        "state": "Jharkhand",
+        "centerLatitude": 24.7042,
+        "centerLongitude": 87.7125,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 14,
+        "isActive": true,
+        "landmarks": [
+          "Hiranpur Main Haat & Cattle Market",
+          "Hatkathia",
+          "Mohanpur",
+          "Pakur-Dumka Link"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-pakur-maheshpur",
+      {
+        "id": "zone-pakur-maheshpur",
+        "name": "Maheshpur Block Hub",
+        "district": "Pakur",
+        "state": "Jharkhand",
+        "centerLatitude": 24.4756,
+        "centerLongitude": 87.7558,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 15,
+        "isActive": true,
+        "landmarks": [
+          "Maheshpur Historical Rajbari Palace",
+          "Bansloi River Bridge",
+          "Rohinpur",
+          "Murshidabad Border Link"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-pakur-littipara",
+      {
+        "id": "zone-pakur-littipara",
+        "name": "Littipara Block Hub",
+        "district": "Pakur",
+        "state": "Jharkhand",
+        "centerLatitude": 24.6983,
+        "centerLongitude": 87.6186,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 10,
+        "isActive": true,
+        "landmarks": [
+          "Littipara Block Chowk",
+          "Dharampur Link",
+          "Paharia Cultural Belt",
+          "Simlong Mining Area"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-pakur-amrapara",
+      {
+        "id": "zone-pakur-amrapara",
+        "name": "Amrapara Block Hub",
+        "district": "Pakur",
+        "state": "Jharkhand",
+        "centerLatitude": 24.5217,
+        "centerLongitude": 87.5683,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 11,
+        "isActive": true,
+        "landmarks": [
+          "Amrapara Main Bazar",
+          "Bansloi River Valley",
+          "Pachwara Coal Hub",
+          "Dumka Link Highway"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ],
+    [
+      "zone-pakur-pakuria",
+      {
+        "id": "zone-pakur-pakuria",
+        "name": "Pakuria Block Hub",
+        "district": "Pakur",
+        "state": "Jharkhand",
+        "centerLatitude": 24.3317,
+        "centerLongitude": 87.6717,
+        "radiusKm": 12,
+        "surgeMultiplier": 1,
+        "activeDrivers": 9,
+        "isActive": true,
+        "landmarks": [
+          "Pakuria Block Chowk",
+          "Shikaripara Link Road",
+          "Radhanagar",
+          "Rampurhat/WB Border Link"
+        ],
+        "createdAt": "2026-11-05T01:37:07.040Z",
+        "updatedAt": "2026-11-05T01:37:07.040Z"
+      }
+    ]
+  ],
+  "vehicleModels": [
+    [
+      "vm-maruti-dzire",
+      {
+        "id": "vm-maruti-dzire",
+        "make": "Maruti Suzuki",
+        "model": "Dzire Tour",
+        "vehicleType": "SEDAN",
+        "allowedServiceType": "RIDE",
+        "seatingCapacity": 4,
+        "baseFare": 70,
+        "perKmRate": 17,
+        "minFare": 90,
+        "description": "Commercial AC sedan for passenger cab rides",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-maruti-ertiga",
+      {
+        "id": "vm-maruti-ertiga",
+        "make": "Maruti Suzuki",
+        "model": "Ertiga",
+        "vehicleType": "SUV",
+        "allowedServiceType": "RIDE",
+        "seatingCapacity": 6,
+        "baseFare": 100,
+        "perKmRate": 22,
+        "minFare": 140,
+        "description": "Spacious 6-seater premium SUV for family & outstation rides",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-maruti-wagonr",
+      {
+        "id": "vm-maruti-wagonr",
+        "make": "Maruti Suzuki",
+        "model": "WagonR",
+        "vehicleType": "HATCHBACK",
+        "allowedServiceType": "BOTH",
+        "seatingCapacity": 4,
+        "baseFare": 50,
+        "perKmRate": 14,
+        "minFare": 60,
+        "description": "Tall-boy economy car eligible for both Passenger Rides & Parcel Deliveries",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-maruti-swift",
+      {
+        "id": "vm-maruti-swift",
+        "make": "Maruti Suzuki",
+        "model": "Swift",
+        "vehicleType": "HATCHBACK",
+        "allowedServiceType": "RIDE",
+        "seatingCapacity": 4,
+        "baseFare": 50,
+        "perKmRate": 14,
+        "minFare": 60,
+        "description": "Economy AC hatchback for city passenger trips",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-maruti-supercarry",
+      {
+        "id": "vm-maruti-supercarry",
+        "make": "Maruti Suzuki",
+        "model": "Super Carry Mini Truck",
+        "vehicleType": "DELIVERY_VAN",
+        "allowedServiceType": "DELIVERY",
+        "seatingCapacity": 2,
+        "baseFare": 120,
+        "perKmRate": 25,
+        "minFare": 160,
+        "description": "Mini truck dedicated for Courier, Cargo & Goods Delivery only",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-tata-tiago",
+      {
+        "id": "vm-tata-tiago",
+        "make": "Tata Motors",
+        "model": "Tiago",
+        "vehicleType": "HATCHBACK",
+        "allowedServiceType": "RIDE",
+        "seatingCapacity": 4,
+        "baseFare": 50,
+        "perKmRate": 14,
+        "minFare": 60,
+        "description": "Safe and comfortable city hatchback",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-tata-tigor",
+      {
+        "id": "vm-tata-tigor",
+        "make": "Tata Motors",
+        "model": "Tigor",
+        "vehicleType": "SEDAN",
+        "allowedServiceType": "RIDE",
+        "seatingCapacity": 4,
+        "baseFare": 70,
+        "perKmRate": 17,
+        "minFare": 90,
+        "description": "Compact sedan with large trunk",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-tata-nexon",
+      {
+        "id": "vm-tata-nexon",
+        "make": "Tata Motors",
+        "model": "Nexon",
+        "vehicleType": "SUV",
+        "allowedServiceType": "RIDE",
+        "seatingCapacity": 5,
+        "baseFare": 90,
+        "perKmRate": 20,
+        "minFare": 130,
+        "description": "5-star safety compact SUV for long distances",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-tata-ace",
+      {
+        "id": "vm-tata-ace",
+        "make": "Tata Motors",
+        "model": "Ace Gold (Chota Hathi)",
+        "vehicleType": "DELIVERY_VAN",
+        "allowedServiceType": "DELIVERY",
+        "seatingCapacity": 2,
+        "baseFare": 150,
+        "perKmRate": 26,
+        "minFare": 200,
+        "description": "India top commercial mini truck for parcel and logistics delivery",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-hyundai-aura",
+      {
+        "id": "vm-hyundai-aura",
+        "make": "Hyundai",
+        "model": "Aura",
+        "vehicleType": "SEDAN",
+        "allowedServiceType": "RIDE",
+        "seatingCapacity": 4,
+        "baseFare": 70,
+        "perKmRate": 17,
+        "minFare": 90,
+        "description": "Modern styling and smooth city ride comfort",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-hyundai-i10",
+      {
+        "id": "vm-hyundai-i10",
+        "make": "Hyundai",
+        "model": "Grand i10 Nios",
+        "vehicleType": "HATCHBACK",
+        "allowedServiceType": "RIDE",
+        "seatingCapacity": 4,
+        "baseFare": 50,
+        "perKmRate": 14,
+        "minFare": 60,
+        "description": "Agile city hatchback for easy traffic navigation",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-hyundai-creta",
+      {
+        "id": "vm-hyundai-creta",
+        "make": "Hyundai",
+        "model": "Creta",
+        "vehicleType": "SUV",
+        "allowedServiceType": "RIDE",
+        "seatingCapacity": 5,
+        "baseFare": 110,
+        "perKmRate": 23,
+        "minFare": 150,
+        "description": "Premium SUV for executive passenger transport",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-mahindra-bolero",
+      {
+        "id": "vm-mahindra-bolero",
+        "make": "Mahindra",
+        "model": "Bolero",
+        "vehicleType": "SUV",
+        "allowedServiceType": "BOTH",
+        "seatingCapacity": 7,
+        "baseFare": 100,
+        "perKmRate": 22,
+        "minFare": 150,
+        "description": "Rugged rural workhorse authorized for both Passenger Rides & Cargo Deliveries",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-mahindra-scorpio",
+      {
+        "id": "vm-mahindra-scorpio",
+        "make": "Mahindra",
+        "model": "Scorpio Classic",
+        "vehicleType": "SUV",
+        "allowedServiceType": "RIDE",
+        "seatingCapacity": 7,
+        "baseFare": 120,
+        "perKmRate": 24,
+        "minFare": 170,
+        "description": "Powerful SUV for rugged highways and passenger groups",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-mahindra-maxitruck",
+      {
+        "id": "vm-mahindra-maxitruck",
+        "make": "Mahindra",
+        "model": "Bolero Maxi Truck",
+        "vehicleType": "DELIVERY_VAN",
+        "allowedServiceType": "DELIVERY",
+        "seatingCapacity": 2,
+        "baseFare": 180,
+        "perKmRate": 28,
+        "minFare": 240,
+        "description": "Heavy payload transport truck for freight & parcel shipments",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-mahindra-treo",
+      {
+        "id": "vm-mahindra-treo",
+        "make": "Mahindra",
+        "model": "Treo Electric Auto",
+        "vehicleType": "AUTO",
+        "allowedServiceType": "BOTH",
+        "seatingCapacity": 3,
+        "baseFare": 30,
+        "perKmRate": 10,
+        "minFare": 40,
+        "description": "Zero emission EV 3-wheeler for Passenger Rides & Parcel Drop-offs",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-toyota-innova",
+      {
+        "id": "vm-toyota-innova",
+        "make": "Toyota",
+        "model": "Innova Crysta",
+        "vehicleType": "SUV",
+        "allowedServiceType": "RIDE",
+        "seatingCapacity": 7,
+        "baseFare": 150,
+        "perKmRate": 28,
+        "minFare": 220,
+        "description": "Flagship luxury MPV for long-distance luxury group travel",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-honda-amaze",
+      {
+        "id": "vm-honda-amaze",
+        "make": "Honda",
+        "model": "Amaze",
+        "vehicleType": "SEDAN",
+        "allowedServiceType": "RIDE",
+        "seatingCapacity": 4,
+        "baseFare": 70,
+        "perKmRate": 17,
+        "minFare": 90,
+        "description": "Refined sedan with premium legroom",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-honda-activa",
+      {
+        "id": "vm-honda-activa",
+        "make": "Honda",
+        "model": "Activa 6G Scooter",
+        "vehicleType": "BIKE",
+        "allowedServiceType": "BOTH",
+        "seatingCapacity": 1,
+        "baseFare": 20,
+        "perKmRate": 7,
+        "minFare": 25,
+        "description": "Reliable 2-wheeler for Bike Taxi Rides and Courier Deliveries",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-hero-splendor",
+      {
+        "id": "vm-hero-splendor",
+        "make": "Hero MotoCorp",
+        "model": "Splendor Plus",
+        "vehicleType": "BIKE",
+        "allowedServiceType": "BOTH",
+        "seatingCapacity": 1,
+        "baseFare": 20,
+        "perKmRate": 7,
+        "minFare": 25,
+        "description": "High mileage bike for quick Bike Rides and Express Parcel Drops",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-hero-hfdeluxe",
+      {
+        "id": "vm-hero-hfdeluxe",
+        "make": "Hero MotoCorp",
+        "model": "HF Deluxe",
+        "vehicleType": "BIKE",
+        "allowedServiceType": "DELIVERY",
+        "seatingCapacity": 1,
+        "baseFare": 20,
+        "perKmRate": 7,
+        "minFare": 25,
+        "description": "Dedicated 2-wheeler delivery vehicle for ecommerce & food delivery",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-bajaj-compact",
+      {
+        "id": "vm-bajaj-compact",
+        "make": "Bajaj Auto",
+        "model": "Compact 4S Auto Rickshaw",
+        "vehicleType": "AUTO",
+        "allowedServiceType": "BOTH",
+        "seatingCapacity": 3,
+        "baseFare": 30,
+        "perKmRate": 11,
+        "minFare": 40,
+        "description": "Standard Indian 3-wheeler for Passenger Shared Rides and Market Deliveries",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-bajaj-pulsar",
+      {
+        "id": "vm-bajaj-pulsar",
+        "make": "Bajaj Auto",
+        "model": "Pulsar 150",
+        "vehicleType": "BIKE",
+        "allowedServiceType": "BOTH",
+        "seatingCapacity": 1,
+        "baseFare": 25,
+        "perKmRate": 8,
+        "minFare": 30,
+        "description": "Fast commuter motorcycle for Bike Taxi and Quick Deliveries",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-tvs-king",
+      {
+        "id": "vm-tvs-king",
+        "make": "TVS Motors",
+        "model": "King Deluxe Auto",
+        "vehicleType": "AUTO",
+        "allowedServiceType": "BOTH",
+        "seatingCapacity": 3,
+        "baseFare": 30,
+        "perKmRate": 11,
+        "minFare": 40,
+        "description": "Comfortable auto rickshaw for rides and parcel delivery",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-piaggio-apecity",
+      {
+        "id": "vm-piaggio-apecity",
+        "make": "Piaggio",
+        "model": "Ape City Plus Auto",
+        "vehicleType": "AUTO",
+        "allowedServiceType": "BOTH",
+        "seatingCapacity": 3,
+        "baseFare": 30,
+        "perKmRate": 11,
+        "minFare": 40,
+        "description": "Heavy-duty 3-wheeler for city passenger rides and parcel cargo",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ],
+    [
+      "vm-piaggio-apecargo",
+      {
+        "id": "vm-piaggio-apecargo",
+        "make": "Piaggio",
+        "model": "Ape Xtra LDX Cargo",
+        "vehicleType": "DELIVERY_VAN",
+        "allowedServiceType": "DELIVERY",
+        "seatingCapacity": 1,
+        "baseFare": 90,
+        "perKmRate": 19,
+        "minFare": 120,
+        "description": "Three wheeler cargo loader for goods and parcel deliveries only",
+        "isActive": true,
+        "createdAt": "2026-11-05T01:37:07.041Z",
+        "updatedAt": "2026-11-05T01:37:07.041Z"
+      }
+    ]
+  ]
+}

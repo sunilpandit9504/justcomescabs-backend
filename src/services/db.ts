@@ -339,10 +339,10 @@ class InMemoryDatabase {
 
   public saveToDisk() {
     try {
-      const dir = path.dirname(this.dbFilePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
+      const candidates = [
+        path.resolve(process.cwd(), 'data', 'db.json'),
+        path.resolve(__dirname, '..', '..', 'data', 'db.json')
+      ];
       const data = {
         users: Array.from(this.users.entries()),
         customerProfiles: Array.from(this.customerProfiles.entries()),
@@ -364,7 +364,16 @@ class InMemoryDatabase {
         zones: Array.from(this.zones.entries()),
         vehicleModels: Array.from(this.vehicleModels.entries())
       };
-      fs.writeFileSync(this.dbFilePath, JSON.stringify(data, null, 2), 'utf-8');
+      const jsonStr = JSON.stringify(data, null, 2);
+      for (const targetPath of candidates) {
+        try {
+          const dir = path.dirname(targetPath);
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+          fs.writeFileSync(targetPath, jsonStr, 'utf-8');
+        } catch (_) {}
+      }
     } catch (err) {
       console.error('Failed to save database to disk:', err);
     }
@@ -372,8 +381,13 @@ class InMemoryDatabase {
 
   public loadFromDisk() {
     try {
-      if (fs.existsSync(this.dbFilePath)) {
-        const raw = fs.readFileSync(this.dbFilePath, 'utf-8');
+      const candidates = [
+        path.resolve(process.cwd(), 'data', 'db.json'),
+        path.resolve(__dirname, '..', '..', 'data', 'db.json')
+      ];
+      const targetPath = candidates.find(p => fs.existsSync(p));
+      if (targetPath) {
+        const raw = fs.readFileSync(targetPath, 'utf-8');
         const data = JSON.parse(raw);
         if (data.users && Array.isArray(data.users)) this.users = new Map(data.users);
         if (data.customerProfiles && Array.isArray(data.customerProfiles)) this.customerProfiles = new Map(data.customerProfiles);
@@ -1231,8 +1245,15 @@ class InMemoryDatabase {
 
   // Helper Finders
   public findUserByPhone(phone: string): UserEntity | undefined {
+    if (!phone) return undefined;
+    const rawClean = phone.replace(/\D/g, '');
+    const cleanLast10 = rawClean.slice(-10);
     for (const u of this.users.values()) {
       if (u.phone === phone) return u;
+      const uClean = u.phone ? u.phone.replace(/\D/g, '') : '';
+      if (cleanLast10 && cleanLast10.length >= 10 && uClean.endsWith(cleanLast10)) {
+        return u;
+      }
     }
     return undefined;
   }
@@ -1286,6 +1307,7 @@ class InMemoryDatabase {
         updatedAt: new Date()
       };
       this.wallets.set(wallet.id, wallet);
+      this.scheduleSave();
     }
     return wallet;
   }
@@ -1307,6 +1329,7 @@ export const db = {
         updatedAt: new Date()
       };
       inMemoryDb.users.set(user.id, user);
+      inMemoryDb.scheduleSave();
       return user;
     },
     update: async (id: string, data: Partial<UserEntity>) => {
@@ -1314,6 +1337,7 @@ export const db = {
       if (!existing) return null;
       const updated = { ...existing, ...data, updatedAt: new Date() };
       inMemoryDb.users.set(id, updated);
+      inMemoryDb.scheduleSave();
       return updated;
     },
     listAll: async () => Array.from(inMemoryDb.users.values())
@@ -1330,6 +1354,7 @@ export const db = {
         updatedAt: new Date()
       };
       inMemoryDb.customerProfiles.set(profile.id, profile);
+      inMemoryDb.scheduleSave();
       return profile;
     },
     update: async (id: string, data: Partial<CustomerProfileEntity>) => {
@@ -1337,12 +1362,39 @@ export const db = {
       if (!existing) return null;
       const updated = { ...existing, ...data, updatedAt: new Date() };
       inMemoryDb.customerProfiles.set(id, updated);
+      inMemoryDb.scheduleSave();
       return updated;
     }
   },
 
   driverProfiles: {
-    findById: async (id: string) => inMemoryDb.driverProfiles.get(id),
+    findById: async (id: string) => {
+      if (!id) return undefined;
+      const cleanId = id.trim().replace(/^#/, '');
+      // 1. Direct match by ID
+      let profile = inMemoryDb.driverProfiles.get(cleanId) || inMemoryDb.driverProfiles.get(id);
+      if (profile) return profile;
+      // 2. Direct match by userId
+      profile = inMemoryDb.findDriverByUserId(cleanId) || inMemoryDb.findDriverByUserId(id);
+      if (profile) return profile;
+      // 3. Match via user phone
+      const user = inMemoryDb.findUserByPhone(cleanId);
+      if (user) {
+        profile = inMemoryDb.findDriverByUserId(user.id);
+        if (profile) return profile;
+      }
+      // 4. Suffix or short ID match
+      for (const d of inMemoryDb.driverProfiles.values()) {
+        if (
+          d.id.toLowerCase() === cleanId.toLowerCase() ||
+          d.id.slice(-4).toLowerCase() === cleanId.toLowerCase() ||
+          d.id.replace(/-/g, '').toLowerCase().endsWith(cleanId.toLowerCase())
+        ) {
+          return d;
+        }
+      }
+      return undefined;
+    },
     findByUserId: async (userId: string) => inMemoryDb.findDriverByUserId(userId),
     create: async (data: Omit<DriverProfileEntity, 'id' | 'createdAt' | 'updatedAt'>) => {
       const profile: DriverProfileEntity = {
@@ -1352,13 +1404,23 @@ export const db = {
         updatedAt: new Date()
       };
       inMemoryDb.driverProfiles.set(profile.id, profile);
+      inMemoryDb.scheduleSave();
       return profile;
     },
     update: async (id: string, data: Partial<DriverProfileEntity>) => {
-      const existing = inMemoryDb.driverProfiles.get(id);
+      let existing = inMemoryDb.driverProfiles.get(id);
+      let targetKey = id;
+      if (!existing) {
+        const found = await db.driverProfiles.findById(id);
+        if (found) {
+          existing = found;
+          targetKey = found.id;
+        }
+      }
       if (!existing) return null;
       const updated = { ...existing, ...data, updatedAt: new Date() };
-      inMemoryDb.driverProfiles.set(id, updated);
+      inMemoryDb.driverProfiles.set(targetKey, updated);
+      inMemoryDb.scheduleSave();
       return updated;
     },
     listPendingKyc: async () => {
@@ -1380,6 +1442,7 @@ export const db = {
         updatedAt: new Date()
       };
       inMemoryDb.vehicles.set(vehicle.id, vehicle);
+      inMemoryDb.scheduleSave();
       return vehicle;
     },
     update: async (id: string, data: Partial<VehicleEntity>) => {
@@ -1387,11 +1450,13 @@ export const db = {
       if (!existing) return null;
       const updated = { ...existing, ...data, updatedAt: new Date() };
       inMemoryDb.vehicles.set(id, updated);
+      inMemoryDb.scheduleSave();
       return updated;
     }
   },
 
   driverDocuments: {
+    findById: async (id: string) => inMemoryDb.driverDocuments.get(id),
     findByDriverId: async (driverId: string) => {
       return Array.from(inMemoryDb.driverDocuments.values()).filter(d => d.driverId === driverId);
     },
@@ -1402,7 +1467,16 @@ export const db = {
         createdAt: new Date()
       };
       inMemoryDb.driverDocuments.set(doc.id, doc);
+      inMemoryDb.scheduleSave();
       return doc;
+    },
+    update: async (id: string, data: Partial<DriverDocumentEntity>) => {
+      const existing = inMemoryDb.driverDocuments.get(id);
+      if (!existing) return null;
+      const updated = { ...existing, ...data };
+      inMemoryDb.driverDocuments.set(id, updated);
+      inMemoryDb.scheduleSave();
+      return updated;
     }
   },
 
@@ -1413,6 +1487,7 @@ export const db = {
       if (existing) {
         const updated = { ...existing, ...data, lastPingAt: new Date() };
         inMemoryDb.driverAvailability.set(driverId, updated);
+        inMemoryDb.scheduleSave();
         return updated;
       }
       const created: DriverAvailabilityEntity = {
@@ -1426,6 +1501,7 @@ export const db = {
         lastPingAt: new Date()
       };
       inMemoryDb.driverAvailability.set(driverId, created);
+      inMemoryDb.scheduleSave();
       return created;
     },
     findOnlineDriversNearby: async (lat: number, lng: number, maxDistanceKm = 15) => {

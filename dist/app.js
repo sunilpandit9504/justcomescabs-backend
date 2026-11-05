@@ -83,6 +83,7 @@ function createApp() {
     app.use('/api/v1/auth', auth_routes_js_1.default);
     app.use('/api/v1/customers', customer_routes_js_1.default);
     app.use('/api/v1/drivers', driver_routes_js_1.default);
+    app.use('/api/v1/driver', driver_routes_js_1.default);
     app.use('/api/v1/admin', admin_routes_js_1.default);
     app.use('/api/v1/pricing', pricing_routes_js_1.default);
     app.use('/api/v1/bookings', booking_routes_js_1.default);
