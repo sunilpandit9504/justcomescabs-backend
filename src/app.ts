@@ -73,11 +73,23 @@ export function createApp(): Express {
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
   app.use(morgan('dev'));
 
+  // Root welcome endpoint
+  app.get('/', (req, res) => {
+    res.json({
+      success: true,
+      service: 'Justcomes Cab Mobility API',
+      status: 'ONLINE',
+      health: '/health',
+      version: '1.0.0',
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Health check
   app.get('/health', (req, res) => {
     res.json({
       status: 'HEALTHY',
-      service: 'GatiGo Mobility Shared Backend',
+      service: 'Justcomes Cab Mobility API',
       version: '1.0.0',
       uptimeSeconds: Math.floor(process.uptime()),
       timestamp: new Date().toISOString()

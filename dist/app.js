@@ -69,11 +69,22 @@ function createApp() {
     app.use(express_1.default.json({ limit: '50mb' }));
     app.use(express_1.default.urlencoded({ extended: true, limit: '50mb' }));
     app.use((0, morgan_1.default)('dev'));
+    // Root welcome endpoint
+    app.get('/', (req, res) => {
+        res.json({
+            success: true,
+            service: 'Justcomes Cab Mobility API',
+            status: 'ONLINE',
+            health: '/health',
+            version: '1.0.0',
+            timestamp: new Date().toISOString()
+        });
+    });
     // Health check
     app.get('/health', (req, res) => {
         res.json({
             status: 'HEALTHY',
-            service: 'GatiGo Mobility Shared Backend',
+            service: 'Justcomes Cab Mobility API',
             version: '1.0.0',
             uptimeSeconds: Math.floor(process.uptime()),
             timestamp: new Date().toISOString()

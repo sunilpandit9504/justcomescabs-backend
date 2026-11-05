@@ -16,7 +16,7 @@ async function bootstrap() {
     socket_service_js_1.socketService.initialize(server);
     // Seed baseline data
     await (0, seed_js_1.runSeed)();
-    server.listen(index_js_1.config.port, () => {
+    server.listen(index_js_1.config.port, '0.0.0.0', () => {
         logger_js_1.logger.info(`=======================================================`);
         logger_js_1.logger.info(`  GatiGo Taxi & Mobility Platform Backend running     `);
         logger_js_1.logger.info(`  Port: ${index_js_1.config.port} | Mode: ${index_js_1.config.env}           `);
