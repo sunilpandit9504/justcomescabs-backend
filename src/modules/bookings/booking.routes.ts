@@ -43,10 +43,26 @@ router.post('/', authenticateToken, requireRoles(UserRole.CUSTOMER), async (req:
 // List customer rides
 router.get('/my-rides', authenticateToken, requireRoles(UserRole.CUSTOMER), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.user!.customerId) {
+    let customerId = req.user?.customerId;
+    if (!customerId && req.user?.id) {
+      const profile = await db.customerProfiles.findByUserId(req.user.id);
+      customerId = profile?.id;
+    }
+    if (!customerId && req.user?.phone) {
+      const u = await db.users.findByPhone(req.user.phone);
+      if (u) {
+        const p = await db.customerProfiles.findByUserId(u.id);
+        customerId = p?.id;
+      }
+    }
+
+    if (!customerId) {
       return res.json({ success: true, data: [] });
     }
-    const rides = await db.bookings.findByCustomerId(req.user!.customerId);
+
+    const rides = await db.bookings.findByCustomerId(customerId);
+    rides.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     res.json({
       success: true,
       data: rides

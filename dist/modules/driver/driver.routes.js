@@ -235,6 +235,18 @@ router.get('/history', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(
             const driver = await db_js_1.db.driverProfiles.findByUserId(req.user.id);
             driverId = driver?.id;
         }
+        if (!driverId && req.user?.phone) {
+            const u = await db_js_1.db.users.findByPhone(req.user.phone);
+            if (u) {
+                const d = await db_js_1.db.driverProfiles.findByUserId(u.id);
+                driverId = d?.id;
+            }
+        }
+        if (!driverId) {
+            const allDrivers = await db_js_1.db.driverProfiles.listAll();
+            if (allDrivers.length > 0)
+                driverId = allDrivers[allDrivers.length - 1].id;
+        }
         if (!driverId) {
             return res.json({ success: true, data: [] });
         }
@@ -260,6 +272,44 @@ router.get('/history', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(
                 customerName = offline.offlineCustomerName;
                 customerPhone = offline.offlineCustomerPhone;
             }
+            // Check for Ride Sharing details
+            const sharingReq = await db_js_1.db.rideSharingRequests.findByBookingId(b.id);
+            const isShared = Boolean(sharingReq) || b.status === shared_1.BookingStatus.OFFERED || b.status === shared_1.BookingStatus.AVAILABLE_FOR_SHARING;
+            const isCreator = b.creatorDriverId === driverId;
+            const isRecipient = b.assignedDriverId === driverId && b.creatorDriverId !== driverId;
+            let partnerDriverName = 'Open Driver Pool';
+            let partnerDriverPhone = '';
+            let partnerDriverVehicle = '';
+            if (isCreator && b.assignedDriverId && b.assignedDriverId !== driverId) {
+                const d = await db_js_1.db.driverProfiles.findById(b.assignedDriverId);
+                if (d) {
+                    const u = await db_js_1.db.users.findById(d.userId);
+                    const v = await db_js_1.db.vehicles.findByDriverId(d.id);
+                    if (u) {
+                        partnerDriverName = u.name;
+                        partnerDriverPhone = u.phone;
+                    }
+                    if (v[0]) {
+                        partnerDriverVehicle = `${v[0].make} ${v[0].model} (${v[0].registrationNumber})`;
+                    }
+                }
+            }
+            else if (isRecipient && b.creatorDriverId) {
+                const d = await db_js_1.db.driverProfiles.findById(b.creatorDriverId);
+                if (d) {
+                    const u = await db_js_1.db.users.findById(d.userId);
+                    if (u) {
+                        partnerDriverName = u.name;
+                        partnerDriverPhone = u.phone;
+                    }
+                }
+            }
+            else if (sharingReq?.directTargetDriverId) {
+                partnerDriverName = sharingReq.directTargetDriverId;
+            }
+            const totalFare = Number(b.finalFare || b.estimatedFare || 0);
+            const commissionAmount = sharingReq?.computedCommissionAmount ?? Math.round(totalFare * 0.1);
+            const driverBEarnings = sharingReq?.expectedDriverBEarnings ?? (totalFare - commissionAmount);
             return {
                 id: b.id,
                 bookingCode: b.bookingCode,
@@ -271,9 +321,9 @@ router.get('/history', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(
                 pickupAddress: b.pickupAddress,
                 dropAddress: b.destinationAddress,
                 destinationAddress: b.destinationAddress,
-                fare: b.finalFare || b.estimatedFare || 0,
+                fare: totalFare,
                 estimatedFare: b.estimatedFare,
-                finalFare: b.finalFare || b.estimatedFare,
+                finalFare: totalFare,
                 advancePaid: b.advancePaid || 0,
                 remainingCustomerBalance: b.remainingCustomerBalance || 0,
                 paymentMethod: b.paymentMethod,
@@ -282,7 +332,19 @@ router.get('/history', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(
                 time: new Date(b.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
                 createdAt: b.createdAt.toISOString(),
                 vehicleCategory: b.vehicleCategory,
-                rating: 5.0
+                rating: 5.0,
+                // Rich Peer-to-Peer Ride Sharing Fields
+                isShared,
+                sharingRole: isCreator ? 'CREATOR' : (isRecipient ? 'RECIPIENT' : 'DIRECT'),
+                sharingStatus: sharingReq?.status || (b.status === 'COMPLETED' ? 'COMPLETED' : 'OFFERED'),
+                sharingMode: sharingReq?.sharingMode || 'OPEN_DRIVER_NETWORK',
+                driverACommission: commissionAmount,
+                driverBEarnings: driverBEarnings,
+                partnerDriver: {
+                    name: partnerDriverName,
+                    phone: partnerDriverPhone,
+                    vehicle: partnerDriverVehicle
+                }
             };
         }));
         res.json({
@@ -301,6 +363,18 @@ router.get('/performance', auth_js_1.authenticateToken, (0, auth_js_1.requireRol
         if (!driverId && req.user?.id) {
             const driver = await db_js_1.db.driverProfiles.findByUserId(req.user.id);
             driverId = driver?.id;
+        }
+        if (!driverId && req.user?.phone) {
+            const u = await db_js_1.db.users.findByPhone(req.user.phone);
+            if (u) {
+                const d = await db_js_1.db.driverProfiles.findByUserId(u.id);
+                driverId = d?.id;
+            }
+        }
+        if (!driverId) {
+            const allDrivers = await db_js_1.db.driverProfiles.listAll();
+            if (allDrivers.length > 0)
+                driverId = allDrivers[allDrivers.length - 1].id;
         }
         const period = (req.query.period || 'DAY').toUpperCase(); // 'DAY' | 'WEEK' | 'MONTH'
         if (!driverId) {

@@ -206,12 +206,13 @@ export class AuthService {
         preferredLanguage: 'hi'
       });
     } else {
+      const isSuperAdmin = user.role === UserRole.SUPER_ADMIN || user.role === UserRole.OPERATIONS_ADMIN;
       user = await db.users.update(user.id, {
         phone: normalizedPhone,
         name: data.name.trim(),
-        role: UserRole.DRIVER,
-        isActive: false,
-        isVerified: false
+        role: isSuperAdmin ? user.role : UserRole.DRIVER,
+        isActive: isSuperAdmin ? user.isActive : false,
+        isVerified: isSuperAdmin ? user.isVerified : false
       }) || user;
     }
 

@@ -132,7 +132,12 @@ export class OfflineBookingService {
    * Returns all offline bookings created by the given driver
    */
   public async getMyOfflineBookings(creatorDriverId: string) {
-    const bookings = await db.bookings.findOfflineCreatedByDriver(creatorDriverId);
+    const allBookings = await db.bookings.listAll();
+    const bookings = allBookings.filter(b => 
+      b.bookingSource === BookingSource.OFFLINE_DRIVER_BOOKING &&
+      (b.creatorDriverId === creatorDriverId || b.assignedDriverId === creatorDriverId)
+    );
+    bookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     return Promise.all(bookings.map(async (booking) => {
       const details = await db.offlineBookingDetails.findByBookingId(booking.id);

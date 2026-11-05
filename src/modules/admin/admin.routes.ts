@@ -487,6 +487,9 @@ router.get('/bookings', authenticateToken, requireAdmin, async (req: Request, re
         }
       }
       const offline = await db.offlineBookingDetails.findByBookingId(b.id);
+      const sharingReq = await db.rideSharingRequests.findByBookingId(b.id);
+      const isShared = Boolean(sharingReq) || b.status === BookingStatus.OFFERED || b.status === BookingStatus.AVAILABLE_FOR_SHARING;
+
       return {
         id: b.id,
         bookingCode: b.bookingCode,
@@ -509,7 +512,19 @@ router.get('/bookings', authenticateToken, requireAdmin, async (req: Request, re
           offlineCustomerName: offline.offlineCustomerName,
           offlineCustomerPhone: offline.offlineCustomerPhone,
           channelSource: offline.channelSource
-        } : undefined
+        } : undefined,
+        isShared,
+        sharingDetails: sharingReq ? {
+          sharingRequestId: sharingReq.id,
+          sharingMode: sharingReq.sharingMode,
+          sharingStatus: sharingReq.status,
+          driverACommission: sharingReq.computedCommissionAmount,
+          driverBEarnings: sharingReq.expectedDriverBEarnings
+        } : (isShared ? {
+          sharingStatus: b.status,
+          driverACommission: Math.round(Number(b.finalFare || b.estimatedFare || 0) * 0.1),
+          driverBEarnings: Number(b.finalFare || b.estimatedFare || 0) - Math.round(Number(b.finalFare || b.estimatedFare || 0) * 0.1)
+        } : undefined)
       };
     }));
 

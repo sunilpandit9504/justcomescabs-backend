@@ -105,11 +105,15 @@ export function requireRoles(...allowedRoles: UserRole[]) {
       return next(new UnauthorizedError());
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
-      return next(new ForbiddenError(`Action requires one of the following roles: ${allowedRoles.join(', ')}`));
+    if (
+      allowedRoles.includes(req.user.role) ||
+      (allowedRoles.includes(UserRole.DRIVER) && Boolean(req.user.driverId)) ||
+      req.user.role === UserRole.SUPER_ADMIN
+    ) {
+      return next();
     }
 
-    next();
+    return next(new ForbiddenError(`Action requires one of the following roles: ${allowedRoles.join(', ')}`));
   };
 }
 
@@ -119,11 +123,15 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   }
 
   const adminRoles = [UserRole.SUPER_ADMIN, UserRole.OPERATIONS_ADMIN, UserRole.FINANCE_ADMIN, UserRole.SUPPORT_AGENT];
-  if (!adminRoles.includes(req.user.role)) {
-    return next(new ForbiddenError('Administrative privileges required'));
+  if (
+    Boolean(req.user.adminId) ||
+    req.user.role === UserRole.SUPER_ADMIN ||
+    adminRoles.includes(req.user.role)
+  ) {
+    return next();
   }
 
-  next();
+  return next(new ForbiddenError('Administrative privileges required'));
 }
 
 export async function requireDriverVerified(req: Request, res: Response, next: NextFunction) {

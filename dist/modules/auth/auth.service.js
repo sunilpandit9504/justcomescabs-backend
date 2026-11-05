@@ -187,12 +187,13 @@ class AuthService {
             });
         }
         else {
+            const isSuperAdmin = user.role === shared_1.UserRole.SUPER_ADMIN || user.role === shared_1.UserRole.OPERATIONS_ADMIN;
             user = await db_js_1.db.users.update(user.id, {
                 phone: normalizedPhone,
                 name: data.name.trim(),
-                role: shared_1.UserRole.DRIVER,
-                isActive: false,
-                isVerified: false
+                role: isSuperAdmin ? user.role : shared_1.UserRole.DRIVER,
+                isActive: isSuperAdmin ? user.isActive : false,
+                isVerified: isSuperAdmin ? user.isVerified : false
             }) || user;
         }
         let driver = await db_js_1.db.driverProfiles.findByUserId(user.id);

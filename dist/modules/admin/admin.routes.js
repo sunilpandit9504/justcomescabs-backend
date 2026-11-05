@@ -447,6 +447,8 @@ router.get('/bookings', auth_js_1.authenticateToken, auth_js_1.requireAdmin, asy
                 }
             }
             const offline = await db_js_1.db.offlineBookingDetails.findByBookingId(b.id);
+            const sharingReq = await db_js_1.db.rideSharingRequests.findByBookingId(b.id);
+            const isShared = Boolean(sharingReq) || b.status === shared_1.BookingStatus.OFFERED || b.status === shared_1.BookingStatus.AVAILABLE_FOR_SHARING;
             return {
                 id: b.id,
                 bookingCode: b.bookingCode,
@@ -469,7 +471,19 @@ router.get('/bookings', auth_js_1.authenticateToken, auth_js_1.requireAdmin, asy
                     offlineCustomerName: offline.offlineCustomerName,
                     offlineCustomerPhone: offline.offlineCustomerPhone,
                     channelSource: offline.channelSource
-                } : undefined
+                } : undefined,
+                isShared,
+                sharingDetails: sharingReq ? {
+                    sharingRequestId: sharingReq.id,
+                    sharingMode: sharingReq.sharingMode,
+                    sharingStatus: sharingReq.status,
+                    driverACommission: sharingReq.computedCommissionAmount,
+                    driverBEarnings: sharingReq.expectedDriverBEarnings
+                } : (isShared ? {
+                    sharingStatus: b.status,
+                    driverACommission: Math.round(Number(b.finalFare || b.estimatedFare || 0) * 0.1),
+                    driverBEarnings: Number(b.finalFare || b.estimatedFare || 0) - Math.round(Number(b.finalFare || b.estimatedFare || 0) * 0.1)
+                } : undefined)
             };
         }));
         res.json({

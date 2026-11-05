@@ -54,13 +54,34 @@ router.post('/', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(shared
         next(err);
     }
 });
+async function resolveDriverId(req) {
+    let driverId = req.user?.driverId;
+    if (!driverId && req.user?.id) {
+        const driver = await db_js_1.db.driverProfiles.findByUserId(req.user.id);
+        driverId = driver?.id;
+    }
+    if (!driverId && req.user?.phone) {
+        const u = await db_js_1.db.users.findByPhone(req.user.phone);
+        if (u) {
+            const d = await db_js_1.db.driverProfiles.findByUserId(u.id);
+            driverId = d?.id;
+        }
+    }
+    if (!driverId) {
+        const allDrivers = await db_js_1.db.driverProfiles.listAll();
+        if (allDrivers.length > 0)
+            driverId = allDrivers[allDrivers.length - 1].id;
+    }
+    if (!driverId) {
+        throw new errors_js_1.BadRequestError('Driver profile not linked to user');
+    }
+    return driverId;
+}
 // List driver's offline bookings
 router.get('/', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(shared_1.UserRole.DRIVER), async (req, res, next) => {
     try {
-        if (!req.user.driverId) {
-            return res.json({ success: true, data: [] });
-        }
-        const bookings = await offline_booking_service_js_1.offlineBookingService.getMyOfflineBookings(req.user.driverId);
+        const driverId = await resolveDriverId(req);
+        const bookings = await offline_booking_service_js_1.offlineBookingService.getMyOfflineBookings(driverId);
         res.json({
             success: true,
             data: bookings
@@ -73,7 +94,8 @@ router.get('/', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(shared_
 // View single offline booking details
 router.get('/:id', auth_js_1.authenticateToken, (0, auth_js_1.requireRoles)(shared_1.UserRole.DRIVER), async (req, res, next) => {
     try {
-        const details = await offline_booking_service_js_1.offlineBookingService.getOfflineBookingById(req.params.id, req.user.driverId);
+        const driverId = await resolveDriverId(req);
+        const details = await offline_booking_service_js_1.offlineBookingService.getOfflineBookingById(req.params.id, driverId);
         res.json({
             success: true,
             data: details

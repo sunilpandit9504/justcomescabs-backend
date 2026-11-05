@@ -86,10 +86,12 @@ function requireRoles(...allowedRoles) {
         if (!req.user) {
             return next(new errors_js_1.UnauthorizedError());
         }
-        if (!allowedRoles.includes(req.user.role)) {
-            return next(new errors_js_1.ForbiddenError(`Action requires one of the following roles: ${allowedRoles.join(', ')}`));
+        if (allowedRoles.includes(req.user.role) ||
+            (allowedRoles.includes(shared_1.UserRole.DRIVER) && Boolean(req.user.driverId)) ||
+            req.user.role === shared_1.UserRole.SUPER_ADMIN) {
+            return next();
         }
-        next();
+        return next(new errors_js_1.ForbiddenError(`Action requires one of the following roles: ${allowedRoles.join(', ')}`));
     };
 }
 function requireAdmin(req, res, next) {
@@ -97,10 +99,12 @@ function requireAdmin(req, res, next) {
         return next(new errors_js_1.UnauthorizedError());
     }
     const adminRoles = [shared_1.UserRole.SUPER_ADMIN, shared_1.UserRole.OPERATIONS_ADMIN, shared_1.UserRole.FINANCE_ADMIN, shared_1.UserRole.SUPPORT_AGENT];
-    if (!adminRoles.includes(req.user.role)) {
-        return next(new errors_js_1.ForbiddenError('Administrative privileges required'));
+    if (Boolean(req.user.adminId) ||
+        req.user.role === shared_1.UserRole.SUPER_ADMIN ||
+        adminRoles.includes(req.user.role)) {
+        return next();
     }
-    next();
+    return next(new errors_js_1.ForbiddenError('Administrative privileges required'));
 }
 async function requireDriverVerified(req, res, next) {
     if (!req.user || req.user.role !== shared_1.UserRole.DRIVER) {
