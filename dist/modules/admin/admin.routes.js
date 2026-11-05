@@ -5,6 +5,7 @@ const auth_js_1 = require("../../common/middleware/auth.js");
 const db_js_1 = require("../../services/db.js");
 const shared_1 = require("@gatigo/shared");
 const errors_js_1 = require("../../common/errors.js");
+const finance_service_js_1 = require("../finance/finance.service.js");
 const router = (0, express_1.Router)();
 function resolveDocUrl(url) {
     if (!url)
@@ -120,7 +121,7 @@ router.get('/drivers', auth_js_1.authenticateToken, auth_js_1.requireAdmin, asyn
                     driverEarnings: 0,
                     byCash: 0,
                     byCardOnline: 0,
-                    walletBalance: wallet?.balance || 650.0
+                    walletBalance: wallet ? Number(wallet.balance || 0) : 0
                 },
                 status: (driver.kycStatus === shared_1.KycStatus.VERIFIED && user?.isActive)
                     ? 'ACTIVE'
@@ -422,6 +423,45 @@ router.post('/drivers/:driverId/status', auth_js_1.authenticateToken, auth_js_1.
         res.json({
             success: true,
             message: 'Driver status updated successfully'
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// Admin adjusts driver wallet (CREDIT or DEBIT)
+router.post('/drivers/:driverId/wallet/adjust', auth_js_1.authenticateToken, auth_js_1.requireAdmin, async (req, res, next) => {
+    try {
+        const { driverId } = req.params;
+        const { action, amount, reason } = req.body;
+        if (!action || (action !== 'CREDIT' && action !== 'DEBIT')) {
+            throw new errors_js_1.BadRequestError('Action must be either CREDIT or DEBIT');
+        }
+        const numAmount = Number(amount);
+        if (isNaN(numAmount) || numAmount <= 0) {
+            throw new errors_js_1.BadRequestError('Amount must be a valid positive number');
+        }
+        const adminId = req.user?.id || 'admin';
+        const result = await finance_service_js_1.financeService.adjustDriverWallet(driverId, action, numAmount, adminId, reason || 'Admin wallet adjustment');
+        db_js_1.inMemoryDb.saveToDisk();
+        res.json({
+            success: true,
+            message: `Driver wallet successfully ${action === 'CREDIT' ? 'credited' : 'debited'} with ₹${numAmount.toFixed(2)}`,
+            data: result
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// Admin gets driver wallet details & transaction ledger
+router.get('/drivers/:driverId/wallet', auth_js_1.authenticateToken, auth_js_1.requireAdmin, async (req, res, next) => {
+    try {
+        const { driverId } = req.params;
+        const data = await finance_service_js_1.financeService.getDriverWalletHistory(driverId);
+        res.json({
+            success: true,
+            data
         });
     }
     catch (err) {

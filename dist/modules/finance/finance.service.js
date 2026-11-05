@@ -227,6 +227,94 @@ class FinanceService {
             };
         }));
     }
+    /**
+     * Admin directly adjusts (CREDIT or DEBIT) a driver's wallet balance
+     */
+    async adjustDriverWallet(driverId, action, amount, adminId, reason) {
+        const numAmount = Number(amount);
+        if (isNaN(numAmount) || numAmount <= 0) {
+            throw new errors_js_1.BadRequestError('Amount must be a positive number greater than 0');
+        }
+        const cleanId = driverId.replace('#', '').trim();
+        let driver = await db_js_1.db.driverProfiles.findById(cleanId);
+        if (!driver) {
+            const all = await db_js_1.db.driverProfiles.listAll();
+            driver = all.find(d => d.id === cleanId || d.userId === cleanId || d.id.toLowerCase().endsWith(cleanId.toLowerCase()));
+        }
+        if (!driver) {
+            throw new errors_js_1.NotFoundError(`Driver profile not found for ID: ${driverId}`);
+        }
+        let wallet = await db_js_1.db.wallets.findByUserId(driver.userId);
+        if (!wallet) {
+            // Auto-create wallet if not present
+            wallet = await db_js_1.db.wallets.create({
+                userId: driver.userId,
+                balance: 0,
+                lockedBalance: 0,
+                currency: 'INR',
+                isFrozen: false
+            });
+        }
+        const currentBal = Number(wallet.balance || 0);
+        if (action === 'DEBIT' && currentBal < numAmount) {
+            throw new errors_js_1.BadRequestError(`Cannot debit ₹${numAmount.toFixed(2)}. Available balance is only ₹${currentBal.toFixed(2)}`);
+        }
+        const { balanceBefore, balanceAfter } = await db_js_1.db.wallets.updateBalance(wallet.id, numAmount, action);
+        const idempotencyKey = `ADMIN_ADJUST_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const transaction = await db_js_1.db.walletTransactions.create({
+            walletId: wallet.id,
+            idempotencyKey,
+            type: action === 'CREDIT' ? shared_1.WalletTransactionType.TOPUP : shared_1.WalletTransactionType.DISPUTE_ADJUSTMENT,
+            direction: action,
+            amount: numAmount,
+            balanceBefore,
+            balanceAfter,
+            status: 'SETTLED',
+            description: `Admin ${action}: ${reason || 'Manual balance adjustment'}`,
+            metadata: { adminId, reason, action, driverId: driver.id }
+        });
+        try {
+            await db_js_1.db.auditLogs.create({
+                actorId: adminId,
+                action: `DRIVER_WALLET_${action}`,
+                entityType: 'WALLET',
+                entityId: wallet.id,
+                changes: { driverId: driver.id, amount: numAmount, action, balanceBefore, balanceAfter, reason }
+            });
+        }
+        catch (_) { }
+        logger_js_1.logger.info(`Admin ${adminId} adjusted Driver ${driver.id} wallet (${action} ₹${numAmount}) -> New Balance: ₹${balanceAfter}`);
+        return {
+            success: true,
+            driverId: driver.id,
+            driverName: (await db_js_1.db.users.findById(driver.userId))?.name || 'Driver',
+            action,
+            amount: numAmount,
+            balanceBefore,
+            balanceAfter,
+            transaction
+        };
+    }
+    async getDriverWalletHistory(driverId) {
+        const cleanId = driverId.replace('#', '').trim();
+        let driver = await db_js_1.db.driverProfiles.findById(cleanId);
+        if (!driver) {
+            const all = await db_js_1.db.driverProfiles.listAll();
+            driver = all.find(d => d.id === cleanId || d.userId === cleanId || d.id.toLowerCase().endsWith(cleanId.toLowerCase()));
+        }
+        if (!driver)
+            throw new errors_js_1.NotFoundError(`Driver profile not found for ID: ${driverId}`);
+        const wallet = await db_js_1.db.wallets.findByUserId(driver.userId);
+        if (!wallet)
+            return { balance: 0, transactions: [] };
+        const transactions = await db_js_1.db.walletTransactions.findByWalletId(wallet.id);
+        return {
+            walletId: wallet.id,
+            balance: Number(wallet.balance || 0),
+            currency: wallet.currency || 'INR',
+            transactions: transactions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        };
+    }
 }
 exports.FinanceService = FinanceService;
 exports.financeService = new FinanceService();

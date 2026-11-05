@@ -126,8 +126,13 @@ class RideSharingService {
                 specialInstructions: details?.specialInstructions || null,
                 expiresInSeconds: secondsRemaining,
                 sharingMode: req.sharingMode,
-                isDirectInvite: req.sharingMode === shared_1.SharingMode.DIRECT_OFFER,
-                matchingZone: 'Within 15 KM • Operational Hub',
+                isDirectInvite: req.sharingMode === shared_1.SharingMode.DIRECT_OFFER || req.sharingMode === 'DIRECT_DRIVER',
+                directFriend: (req.sharingMode === shared_1.SharingMode.DIRECT_OFFER || req.sharingMode === 'DIRECT_DRIVER')
+                    ? (creatorUser?.name ? `${creatorUser.name} ( ${creatorUser.phone} )` : 'Direct Friend')
+                    : null,
+                matchingZone: (req.sharingMode === shared_1.SharingMode.DIRECT_OFFER || req.sharingMode === 'DIRECT_DRIVER')
+                    ? 'Direct Friend Priority Invite'
+                    : 'Within 15 KM • Operational Hub',
                 // Privacy Guard: Mask customer identity
                 customerSummary: {
                     name: details ? `${details.offlineCustomerName.charAt(0)}***` : 'Customer',

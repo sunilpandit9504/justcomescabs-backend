@@ -282,7 +282,12 @@ export class FinanceService {
       throw new BadRequestError('Amount must be a positive number greater than 0');
     }
 
-    const driver = await db.driverProfiles.findById(driverId);
+    const cleanId = driverId.replace('#', '').trim();
+    let driver = await db.driverProfiles.findById(cleanId);
+    if (!driver) {
+      const all = await db.driverProfiles.listAll();
+      driver = all.find(d => d.id === cleanId || d.userId === cleanId || d.id.toLowerCase().endsWith(cleanId.toLowerCase()));
+    }
     if (!driver) {
       throw new NotFoundError(`Driver profile not found for ID: ${driverId}`);
     }
@@ -320,7 +325,7 @@ export class FinanceService {
       balanceAfter,
       status: 'SETTLED',
       description: `Admin ${action}: ${reason || 'Manual balance adjustment'}`,
-      metadata: { adminId, reason, action, driverId }
+      metadata: { adminId, reason, action, driverId: driver.id }
     });
 
     try {
@@ -329,15 +334,15 @@ export class FinanceService {
         action: `DRIVER_WALLET_${action}`,
         entityType: 'WALLET',
         entityId: wallet.id,
-        changes: { driverId, amount: numAmount, action, balanceBefore, balanceAfter, reason }
+        changes: { driverId: driver.id, amount: numAmount, action, balanceBefore, balanceAfter, reason }
       });
     } catch (_) {}
 
-    logger.info(`Admin ${adminId} adjusted Driver ${driverId} wallet (${action} ₹${numAmount}) -> New Balance: ₹${balanceAfter}`);
+    logger.info(`Admin ${adminId} adjusted Driver ${driver.id} wallet (${action} ₹${numAmount}) -> New Balance: ₹${balanceAfter}`);
 
     return {
       success: true,
-      driverId,
+      driverId: driver.id,
       driverName: (await db.users.findById(driver.userId))?.name || 'Driver',
       action,
       amount: numAmount,
@@ -348,8 +353,13 @@ export class FinanceService {
   }
 
   public async getDriverWalletHistory(driverId: string) {
-    const driver = await db.driverProfiles.findById(driverId);
-    if (!driver) throw new NotFoundError('Driver profile not found');
+    const cleanId = driverId.replace('#', '').trim();
+    let driver = await db.driverProfiles.findById(cleanId);
+    if (!driver) {
+      const all = await db.driverProfiles.listAll();
+      driver = all.find(d => d.id === cleanId || d.userId === cleanId || d.id.toLowerCase().endsWith(cleanId.toLowerCase()));
+    }
+    if (!driver) throw new NotFoundError(`Driver profile not found for ID: ${driverId}`);
 
     const wallet = await db.wallets.findByUserId(driver.userId);
     if (!wallet) return { balance: 0, transactions: [] };

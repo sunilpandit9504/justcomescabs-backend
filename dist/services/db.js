@@ -1323,7 +1323,7 @@ exports.db = {
                 if (r.creatorDriverId === driverId)
                     return false;
                 // If shared in DIRECT mode to a specific driver, only show to that target driver
-                if (r.sharingMode === shared_1.SharingMode.DIRECT_OFFER && r.directTargetDriverId) {
+                if ((r.sharingMode === shared_1.SharingMode.DIRECT_OFFER || r.sharingMode === 'DIRECT_DRIVER') && r.directTargetDriverId) {
                     return r.directTargetDriverId === driverId;
                 }
                 // Open Driver Network Pool: available to qualified peer drivers
